@@ -5,6 +5,7 @@ window.HP_CATS = [
   { id: 'chi', lv: 1, nome: 'Chi canta', regola: 'Solista uomo, solista donna, gruppo con voce maschile, gruppo con voce femminile, oppure misto. Se è strumentale: Salta carta.', audio: 'normale' },
   { id: 'prima', lv: 1, nome: 'Prima o dopo', regola: 'Questa canzone è uscita prima o dopo del <span class="ref">{ref}</span>? Stesso anno: valgono entrambe.', audio: 'normale' },
   { id: 'intro', lv: 2, nome: 'Solo intro', regola: 'Solo 5 secondi! Scrivete l\'artista oppure il titolo (ne basta uno).', audio: 'intro' },
+  { id: 'titolo', lv: 2, nome: 'Il titolo', regola: 'Scrivete il titolo della canzone.', audio: 'normale' },
   { id: 'film', lv: 2, nome: 'Titolo del film', regola: 'Scrivete il titolo del film, serie o cartone da cui viene la canzone.', audio: 'normale', colonne: true },
   { id: 'accelerata', lv: 3, nome: 'Accelerata', regola: 'La canzone va più veloce e più acuta. Scrivete l\'artista oppure il titolo.', audio: 'veloce' },
   { id: 'combo', lv: 3, nome: 'La Combo', regola: 'Scrivete artista E titolo: valgono solo tutti e due.', audio: 'normale' },
