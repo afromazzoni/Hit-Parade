@@ -101,7 +101,8 @@
 
   /* la cartella del DJ, a tutto schermo sopra la partita */
   #myCard { position: fixed; inset: 0; z-index: 9; background: var(--bg); display: flex; flex-direction: column; padding-top: env(safe-area-inset-top); }
-  #myCardClose { margin: 10px 16px 0; padding: 12px; border-radius: 999px; background: var(--card); font-weight: 700; }
+  #myCardClose { margin: 10px 16px 0; padding: 12px; border-radius: 999px; background: var(--card); font-weight: 700; font-variant-numeric: tabular-nums; }
+  #myCardClose.alert { background: var(--accent2); color: #fff; }
   #myCardFrame { flex: 1; width: 100%; border: 0; }
 
   /* un colore per lettera, come sulla cartella del telefono */
@@ -196,6 +197,7 @@
     <div class="bar"><div id="bar"></div></div>
     <button class="big" id="solBtn">Soluzione</button>
     <div class="row">
+      <button class="ghost myCardBtn">🎟 La mia cartella</button>
       <button class="ghost" id="skipBtn">⏭ Salta carta</button>
     </div>
   </section>
@@ -420,7 +422,9 @@ function listen() {
   $('phase').textContent = 'Ascoltate!';
   $('phaseSub').textContent = turn.cat.nome + (turn.cat.id === 'prima' ? ' · rispetto al ' + refYear() : '');
   $('disc').classList.add('spin2');
-  playBuffer(turn.buffer, fx, seconds, frac => { $('bar').style.width = (frac * 100) + '%'; }).then(ok => {
+  const playing = playBuffer(turn.buffer, fx, seconds, frac => { $('bar').style.width = (frac * 100) + '%'; });
+  cardBar('🎵 In ascolto');  // dopo playBuffer, che azzera tutto (barra compresa)
+  playing.then(ok => {
     $('disc').classList.remove('spin2');
     if (ok) answerTime();
   });
@@ -433,6 +437,7 @@ function answerTime() {
   $('phaseSub').textContent = turn.cat.nome;
   $('count').classList.remove('hidden', 'low');
   $('count').textContent = left;
+  cardBar('⏱ ' + left + ' s per rispondere');
   $('bar').style.width = '100%';
   const t0 = Date.now();
   clearInterval(countTimer);
@@ -442,11 +447,13 @@ function answerTime() {
     if (l !== left) {
       left = l;
       $('count').textContent = left;
+      cardBar('⏱ ' + left + ' s per rispondere', left <= 3);
       if (left <= 3 && left > 0) { $('count').classList.add('low'); blip(660, 0.08); }
     }
     if (left === 0) {
       clearInterval(countTimer);
       $('phase').textContent = 'Penne giù!';
+      cardBar('🔔 Penne giù!', true);
       gong();
     }
   }, 100);
@@ -581,7 +588,13 @@ function gong() {
   ns.connect(bp); bp.connect(ng); ng.connect(comp); ns.start(t);
   if (navigator.vibrate) navigator.vibrate([500, 100, 300]);
 }
+// barra in cima alla cartella del DJ: mostra a che punto e' il turno (ascolto, secondi rimasti)
+function cardBar(text, alert) {
+  $('myCardClose').textContent = text ? '← Bingo · ' + text : '← Torna al Bingo';
+  $('myCardClose').classList.toggle('alert', !!alert);
+}
 function stopAll() {
+  cardBar('');
   clearInterval(countTimer); clearTimeout(endTimer); cancelAnimationFrame(rafId);
   if (src) { try { src.onended = null; src.stop(); } catch (e) {} src = null; }
   extras.forEach(o => { try { o.stop(); } catch (e) {} }); extras = [];
