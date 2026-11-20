@@ -54,6 +54,9 @@
   .legend { display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; width: 100%; }
   .legend div { background: var(--card); border-radius: 10px; padding: 5px 2px; font-size: 10px; line-height: 1.2; color: var(--muted); min-height: 44px; }
   .legend b { display: block; font-size: 17px; color: var(--text); }
+  .legend .late { display: block; font-style: normal; font-size: 11px; font-weight: 700; margin-top: 2px; color: var(--muted); }
+  .legend .late.hot { color: var(--warn); }
+  .legend .on .late { color: #fff; }
   .legend .on { background: var(--accent); color: #fff; }
   .legend .on b { color: #fff; }
 
@@ -270,7 +273,8 @@ const CATS = window.HP_CATS || [];
 const CAT = Object.fromEntries(CATS.map(c => [c.id, c]));
 
 // ------------------------------------------------------------------ impostazioni (salvate sul telefono)
-const S = { deck: 'normale', off: [], listen: 30, answer: 20, game: null, lastYear: null };
+// delay[i] = da quante estrazioni la lettera i non esce (si azzera a ogni nuova partita)
+const S = { deck: 'normale', off: [], listen: 30, answer: 20, game: null, lastYear: null, delay: [0, 0, 0, 0, 0] };
 try { Object.assign(S, JSON.parse(localStorage.getItem('hitparade-bingo') || '{}')); } catch (e) {}
 function save() { try { localStorage.setItem('hitparade-bingo', JSON.stringify(S)); } catch (e) {} }
 
@@ -323,12 +327,26 @@ $('reroll').onclick = () => { newGame(); renderSetup(); };
 $('listen').oninput = e => { S.listen = +e.target.value; save(); $('listenVal').textContent = S.listen + ' secondi'; };
 $('answer').oninput = e => { S.answer = +e.target.value; save(); $('answerVal').textContent = S.answer + ' secondi'; };
 $('gongTest').onclick = () => { unlockAudio(); gong(); };
-$('startBtn').onclick = () => { S.lastYear = null; deckWarned = false; save(); unlockAudio(); keepAwake(); toTurn(); };
+$('startBtn').onclick = () => { S.lastYear = null; S.delay = [0, 0, 0, 0, 0]; deckWarned = false; save(); unlockAudio(); keepAwake(); toTurn(); };
 $('setupBtn').onclick = () => { stopAll(); renderSetup(); show('setup'); };
 
 function legend(active) {
-  return S.game.map((id, i) => `<div class="${LETTERS[i] === active ? 'on' : ''}"><b>${LETTERS[i]}</b>${CAT[id].nome}</div>`).join('');
+  const d = delays();
+  return S.game.map((id, i) => `<div class="${LETTERS[i] === active ? 'on' : ''}"><b>${LETTERS[i]}</b>${CAT[id].nome}` +
+    (d[i] > 0 ? `<i class="late${d[i] >= 6 ? ' hot' : ''}">⏳ ${d[i]}</i>` : '') + '</div>').join('');
 }
+
+// Estrazione con i "ritardatari": il peso di una lettera e' (turni di assenza + 1) al quadrato.
+// Appena uscita pesa 1, dopo 3 turni senza uscire pesa 16, dopo 6 pesa 49: resta casuale, ma le lunghe assenze spariscono.
+function delays() { return Array.isArray(S.delay) && S.delay.length === 5 ? S.delay : (S.delay = [0, 0, 0, 0, 0]); }
+function drawLetter() {
+  const w = delays().map(d => (d + 1) * (d + 1)), tot = w.reduce((a, b) => a + b, 0);
+  let r = Math.random() * tot, k = 0;
+  while (r >= w[k] && k < 4) { r -= w[k]; k++; }
+  return k;
+}
+// i ritardi si aggiornano solo quando la ruota si ferma (prima svelerebbero la lettera)
+function commitDelay(k) { S.delay = delays().map((d, i) => i === k ? 0 : d + 1); save(); }
 function show(id) { for (const s of ['setup', 'turn', 'scan', 'play', 'solution', 'tie']) $(s).classList.toggle('hidden', s !== id); }
 
 // ------------------------------------------------------------------ turno
@@ -348,7 +366,7 @@ function toTurn() {
 $('drawBtn').onclick = () => {
   unlockAudio();
   $('drawBtn').classList.add('hidden');
-  const final = Math.floor(Math.random() * 5);
+  const final = drawLetter();
   // parte velocissima e rallenta: in tutto circa un secondo e mezzo
   let i = Math.floor(Math.random() * 5), steps = 12 + Math.floor(Math.random() * 5), delay = 30;
   $('wheel').classList.add('spin');
@@ -365,6 +383,8 @@ $('drawBtn').onclick = () => {
     $('wheel').classList.remove('spin');
     if (navigator.vibrate) navigator.vibrate([60, 40, 120]);
     blip(988, 0.18);
+    commitDelay(final);
+    $('legend').innerHTML = legend(LETTERS[final]);
     const cat = CAT[S.game[final]];
     turn = { letter: LETTERS[final], cat };
     $('catName').textContent = cat.nome;
