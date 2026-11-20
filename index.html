@@ -1,0 +1,371 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#16100c">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<title>Hit Parade</title>
+<meta name="apple-mobile-web-app-title" content="Hit Parade">
+<style>
+  :root {
+    --bg: #16100c; --card: #2b1c13; --card2: #3b271a; --text: #fff3ea; --muted: #d9ab8c;
+    --accent: #ff7a1f; --accent2: #ff3d2e; --ok: #3ddc97;
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { margin: 0; height: 100%; background: var(--bg); color: var(--text);
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; overscroll-behavior: none; }
+  /* in basso c'e' il bollino di Netlify: lascio spazio perche' non copra i pulsanti */
+  body { display: flex; flex-direction: column; min-height: 100dvh;
+    padding: env(safe-area-inset-top) 16px calc(env(safe-area-inset-bottom) + 72px); }
+  header { position: relative; text-align: center; padding: 18px 0 6px; font-weight: 800; letter-spacing: .12em; font-size: 15px; color: var(--muted); }
+  #gear { position: absolute; right: 0; top: 8px; width: 44px; height: 44px; font-size: 22px; background: transparent; color: var(--muted); }
+  main { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 22px; text-align: center; }
+  .hidden { display: none !important; }
+  button { font: inherit; border: 0; border-radius: 999px; cursor: pointer; color: var(--text); }
+  .big { width: min(320px, 100%); padding: 22px; font-size: 22px; font-weight: 800;
+    background: linear-gradient(135deg, var(--accent), var(--accent2)); box-shadow: 0 10px 30px #ff6a2a55; }
+  .ghost { padding: 14px 22px; font-size: 17px; background: var(--card); }
+  .col { display: flex; flex-direction: column; align-items: center; gap: 14px; width: 100%; }
+  .hint { color: var(--muted); font-size: 15px; max-width: 320px; line-height: 1.4; margin: 0; }
+  .mode { color: var(--muted); font-size: 14px; letter-spacing: .05em; }
+  /* scanner */
+  #scanBox { position: relative; width: min(340px, 100%); aspect-ratio: 1; border-radius: 24px; overflow: hidden; background: #000; }
+  #video { width: 100%; height: 100%; object-fit: cover; }
+  #scanBox::after { content: ""; position: absolute; inset: 18%; border: 4px solid #fff; border-radius: 18px; box-shadow: 0 0 0 999px #0007; }
+  /* player */
+  .disc { width: 200px; height: 200px; border-radius: 50%; position: relative;
+    background: repeating-radial-gradient(circle, #1b1b1b 0 2px, #262626 2px 4px);
+    box-shadow: 0 20px 50px #0009; display: grid; place-items: center; }
+  .disc::after { content: "?"; width: 76px; height: 76px; border-radius: 50%; display: grid; place-items: center;
+    font-size: 42px; font-weight: 900; background: linear-gradient(135deg, var(--accent), var(--accent2)); }
+  .spin { animation: spin 3s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  h1 { margin: 0; font-size: 34px; }
+  .bar { width: min(300px, 100%); height: 8px; border-radius: 4px; background: var(--card); overflow: hidden; }
+  .bar > div { height: 100%; width: 0; background: var(--ok); }
+  .controls { display: flex; gap: 14px; align-items: center; justify-content: center; }
+  #playBtn { width: 80px; height: 80px; font-size: 32px; background: var(--card); }
+  #plusBtn { padding: 14px 18px; font-size: 17px; font-weight: 700; background: var(--card2); }
+  .reveal { background: var(--card); border-radius: 20px; padding: 16px 22px; width: min(320px, 100%); }
+  .reveal .y { font-size: 52px; font-weight: 900; color: var(--accent); line-height: 1; }
+  .reveal .t { font-size: 20px; font-weight: 700; margin-top: 8px; }
+  .reveal .a { color: var(--muted); margin-top: 4px; }
+  .reveal .al { color: var(--muted); font-size: 14px; margin-top: 6px; font-style: italic; }
+  .reveal .al:not(:empty)::before { content: "💿 "; font-style: normal; }
+  .reveal .k { color: var(--accent); font-size: 13px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; }
+  .reveal .o { font-size: 22px; font-weight: 800; margin: 2px 0 8px; }
+  .reveal .k:empty, .reveal .o:empty, .reveal .al:empty { display: none; }
+  .warn { color: #ffd27a; font-size: 14px; max-width: 320px; margin: 0; }
+  textarea { width: min(320px, 100%); background: var(--card); color: var(--text); border: 0; border-radius: 12px; padding: 12px; font: inherit; }
+  /* opzioni */
+  .opts { width: min(340px, 100%); display: flex; flex-direction: column; gap: 10px; text-align: left; }
+  .opt { display: flex; align-items: center; gap: 14px; background: var(--card); border-radius: 16px; padding: 14px 16px; cursor: pointer; border: 2px solid transparent; }
+  .opt.sel { border-color: var(--accent); background: var(--card2); }
+  .opt input { display: none; }
+  .opt b { display: block; font-size: 18px; }
+  .opt span { color: var(--muted); font-size: 14px; }
+  .opt .sec { margin-left: auto; font-size: 22px; font-weight: 900; color: var(--accent); white-space: nowrap; }
+  .slider { padding: 4px 16px 0; }
+  .slider input { width: 100%; accent-color: var(--accent); }
+  h2 { margin: 0; font-size: 24px; }
+
+  /* palette arancione: testo bianco con un filo di ombra sui pulsanti */
+  :root { --on: #ffffff; }
+  .big, .disc::after, .seg button.on, .legend .on, .legend .on b { color: var(--on) !important; text-shadow: 0 1px 2px #0005; }
+</style>
+</head>
+<body>
+<header>HIT PARADE<button id="gear" aria-label="Opzioni">⚙</button></header>
+<main>
+  <!-- inizio -->
+  <section id="home" class="col" style="gap:22px">
+    <button class="big" id="scanStart">📷 Scansiona carta</button>
+    <div class="mode" id="modeHome"></div>
+    <p class="hint">Inquadra il QR sul retro della carta: la canzone parte senza mostrare titolo e cantante.</p>
+    <a class="ghost" href="bingo.html" style="text-decoration:none;color:var(--text);font-weight:700;border-radius:999px;padding:14px 28px">🎱 Bingo</a>
+    <a class="ghost" href="cartella.html" style="text-decoration:none;color:var(--text);font-size:14px;border-radius:999px;padding:10px 20px">📱 La mia cartella del Bingo</a>
+    <button class="ghost" id="manualBtn" style="font-size:14px">Incolla un link</button>
+    <div id="manual" class="col hidden">
+      <textarea id="manualText" rows="2" placeholder="https://open.spotify.com/track/..."></textarea>
+      <button class="ghost" id="manualGo">Vai</button>
+    </div>
+  </section>
+
+  <!-- scanner -->
+  <section id="scan" class="col hidden" style="gap:18px">
+    <div id="scanBox"><video id="video" playsinline muted></video></div>
+    <p class="hint" id="scanMsg">Inquadra il QR code</p>
+    <button class="ghost" id="scanCancel">Annulla</button>
+  </section>
+
+  <!-- player -->
+  <section id="player" class="col hidden" style="gap:18px">
+    <div class="disc" id="disc"></div>
+    <h1 id="status">Indovina!</h1>
+    <div class="mode" id="modePlayer"></div>
+    <div class="bar"><div id="progress"></div></div>
+    <div class="controls">
+      <button id="playBtn" aria-label="Play">▶</button>
+      <button id="plusBtn" class="hidden">+1 s</button>
+    </div>
+    <p class="warn hidden" id="warn"></p>
+    <div class="reveal hidden" id="reveal">
+      <div class="k" id="rK"></div><div class="o" id="rO"></div>
+      <div class="y" id="rY"></div><div class="t" id="rT"></div><div class="a" id="rA"></div><div class="al" id="rAl"></div>
+    </div>
+    <button class="big" id="nextBtn">Prossima carta</button>
+    <button class="ghost" id="revealBtn">Mostra soluzione</button>
+  </section>
+
+  <!-- opzioni -->
+  <section id="options" class="col hidden">
+    <h2>Opzioni</h2>
+    <div class="opts" id="opts">
+      <label class="opt" data-m="facile"><input type="radio" name="m"><div><b>Facile</b><span>tutta l'anteprima</span></div><div class="sec">30 s</div></label>
+      <label class="opt" data-m="media"><input type="radio" name="m"><div><b>Media</b><span>un po' meno tempo</span></div><div class="sec">20 s</div></label>
+      <label class="opt" data-m="difficile"><input type="radio" name="m"><div><b>Difficile</b><span>bisogna essere svelti</span></div><div class="sec">10 s</div></label>
+      <label class="opt" data-m="sarabanda"><input type="radio" name="m"><div><b>Sarabanda</b><span>"la indovino in…": pochi secondi, e se serve +1 s</span></div><div class="sec" id="saraSec">3 s</div></label>
+      <div class="slider" id="saraBox"><input type="range" id="saraRange" min="1" max="15" step="1" value="3"></div>
+    </div>
+    <button class="big" id="optsDone">Fatto</button>
+  </section>
+</main>
+
+<audio id="audio" preload="auto"></audio>
+<canvas id="canvas" class="hidden"></canvas>
+<script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
+<script src="mazzi.js"></script>
+<script>
+const $ = id => document.getElementById(id);
+const audio = $('audio'), video = $('video'), canvas = $('canvas');
+const MAZZI = window.MAZZI || {};
+const SILENCE = 'data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQAAAAA=';
+const MODES = { facile: ['Facile', 30], media: ['Media', 20], difficile: ['Difficile', 10], sarabanda: ['Sarabanda', null] };
+let stream = null, scanning = false, current = null, limit = 30, back = 'home';
+
+// ---------- opzioni (salvate sul telefono)
+const settings = { mode: 'facile', sara: 3 };
+try { Object.assign(settings, JSON.parse(localStorage.getItem('hitparade') || '{}')); } catch (e) {}
+function save() { try { localStorage.setItem('hitparade', JSON.stringify(settings)); } catch (e) {} }
+function modeSeconds() { return settings.mode === 'sarabanda' ? settings.sara : MODES[settings.mode][1]; }
+function modeLabel() { return MODES[settings.mode][0] + ' · ' + modeSeconds() + ' secondi'; }
+function renderOptions() {
+  document.querySelectorAll('.opt').forEach(o => o.classList.toggle('sel', o.dataset.m === settings.mode));
+  $('saraRange').value = settings.sara; $('saraSec').textContent = settings.sara + ' s';
+  $('saraBox').classList.toggle('hidden', settings.mode !== 'sarabanda');
+  $('modeHome').textContent = $('modePlayer').textContent = modeLabel();
+}
+document.querySelectorAll('.opt').forEach(o => o.onclick = () => { settings.mode = o.dataset.m; save(); renderOptions(); });
+$('saraRange').oninput = e => { settings.sara = +e.target.value; save(); renderOptions(); };
+$('gear').onclick = () => {
+  if (!$('options').classList.contains('hidden')) return $('optsDone').onclick();
+  back = ['home', 'scan', 'player'].find(s => !$(s).classList.contains('hidden')) || 'home';
+  if (back === 'scan') { pauseScan(); back = 'home'; }
+  show('options');
+};
+$('optsDone').onclick = () => { show(back); if (back === 'player') resetLimit(); };
+renderOptions();
+
+function show(id) { for (const s of ['home', 'scan', 'player', 'options']) $(s).classList.toggle('hidden', s !== id); }
+
+// Deezer non permette chiamate dirette dal browser: si usa JSONP, che invece accetta
+function jsonp(url) {
+  return new Promise((resolve, reject) => {
+    const cb = 'cb' + Math.random().toString(36).slice(2);
+    const s = document.createElement('script');
+    const t = setTimeout(() => { cleanup(); reject(new Error('timeout')); }, 10000);
+    function cleanup() { clearTimeout(t); delete window[cb]; s.remove(); }
+    window[cb] = data => { cleanup(); resolve(data); };
+    s.onerror = () => { cleanup(); reject(new Error('rete')); };
+    s.src = url + (url.includes('?') ? '&' : '?') + 'output=jsonp&callback=' + cb;
+    document.head.appendChild(s);
+  });
+}
+
+function trackId(text) {
+  const m = /track[\/:]([A-Za-z0-9]{22})/.exec(text || '');
+  return m ? m[1] : null;
+}
+// le carte colonne sonore hanno "hp=c" nel QR
+function isFilmCard(text) { return /[?&]hp=c\b/.test(text || ''); }
+const TIPI = { film: 'Film', serie: 'Serie TV', cartone: 'Cartone animato', programma: 'Programma TV' };
+
+// ---------- fotocamera
+// La fotocamera si apre una volta sola e resta aperta finche' l'app e' in primo piano:
+// cosi' il telefono non richiede il permesso a ogni carta.
+async function openCamera() {
+  if (stream && stream.getTracks().some(t => t.readyState === 'live')) {
+    stream.getTracks().forEach(t => t.enabled = true);
+    return true;
+  }
+  try {
+    stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' }, audio: false });
+    video.srcObject = stream;
+    return true;
+  } catch (e) { return false; }
+}
+function closeCamera() {
+  if (stream) { stream.getTracks().forEach(t => t.stop()); stream = null; video.srcObject = null; }
+}
+// se si esce dall'app la fotocamera si spegne (al ritorno potrebbe richiedere il permesso)
+document.addEventListener('visibilitychange', () => { if (document.hidden) { scanning = false; closeCamera(); if (!$('scan').classList.contains('hidden')) show('home'); } });
+
+async function startScan() {
+  audio.pause();
+  audio.src = SILENCE; audio.play().catch(() => {}); // sblocca l'audio su iPhone: serve un tocco
+  show('scan'); $('scanMsg').textContent = 'Inquadra il QR code';
+  if (!await openCamera()) {
+    $('scanMsg').textContent = 'Non riesco ad aprire la fotocamera: controlla i permessi del browser.';
+    return;
+  }
+  try { await video.play(); } catch (e) {}
+  scanning = true;
+  const detector = ('BarcodeDetector' in window) ? new BarcodeDetector({ formats: ['qr_code'] }) : null;
+  const ctx = canvas.getContext('2d', { willReadFrequently: true });
+  const tick = async () => {
+    if (!scanning) return;
+    let text = null;
+    if (video.readyState >= 2) {
+      try {
+        if (detector) {
+          const codes = await detector.detect(video);
+          if (codes.length) text = codes[0].rawValue;
+        } else {
+          const w = 480, h = Math.round(480 * video.videoHeight / video.videoWidth);
+          canvas.width = w; canvas.height = h;
+          ctx.drawImage(video, 0, 0, w, h);
+          const code = jsQR(ctx.getImageData(0, 0, w, h).data, w, h, { inversionAttempts: 'dontInvert' });
+          if (code) text = code.data;
+        }
+      } catch (e) {}
+    }
+    if (text) {
+      const id = trackId(text);
+      if (id) { pauseScan(); if (navigator.vibrate) navigator.vibrate(80); return load(id, isFilmCard(text)); }
+      $('scanMsg').textContent = 'Questo QR non è una carta Hitster';
+    }
+    requestAnimationFrame(tick);
+  };
+  tick();
+}
+function pauseScan() {
+  scanning = false;
+  if (stream) stream.getTracks().forEach(t => t.enabled = false); // resta aperta ma non riprende
+}
+
+// ---------- brano
+async function load(id, film) {
+  show('player');
+  $('reveal').classList.add('hidden'); $('warn').classList.add('hidden');
+  $('revealBtn').classList.remove('hidden');
+  $('status').textContent = 'Carico…';
+  resetLimit();
+  setPlaying(false);
+  current = { id, film: !!film, info: MAZZI[id] ? Object.assign({}, MAZZI[id]) : null };
+  try {
+    let track = null;
+    if (current.info && current.info.d) {
+      track = await jsonp('https://api.deezer.com/track/' + current.info.d);
+      if (!current.info.al && track && track.album) current.info.al = track.album.title;
+    } else {
+      // carta non in elenco: chiedo il titolo a Spotify e lo cerco su Deezer (puo' sbagliare)
+      const o = await fetch('https://open.spotify.com/oembed?url=https://open.spotify.com/track/' + id).then(r => r.json());
+      const r = await jsonp('https://api.deezer.com/search?limit=1&q=' + encodeURIComponent(o.title));
+      track = r && r.data && r.data[0];
+      if (track) {
+        current.info = { t: track.title_short || track.title, a: track.artist.name, y: '', al: track.album && track.album.title };
+        warn('Carta non nell\'elenco dell\'app: ho cercato il brano per titolo, potrebbe essere un\'altra versione.');
+      }
+    }
+    if (!track || !track.preview) throw new Error('nessuna anteprima');
+    audio.src = track.preview;
+    $('status').textContent = 'Indovina!';
+    audio.play().catch(() => { $('status').textContent = 'Tocca ▶'; });
+  } catch (e) {
+    $('status').textContent = 'Niente anteprima';
+    warn('Per questa canzone non ho trovato l\'anteprima di 30 secondi. Usate la carta successiva, o ascoltatela su Spotify.');
+  }
+}
+function warn(t) { $('warn').textContent = t; $('warn').classList.remove('hidden'); }
+function setPlaying(on) {
+  $('playBtn').textContent = on ? '❚❚' : '▶';
+  $('disc').classList.toggle('spin', on);
+}
+function resetLimit() {
+  limit = modeSeconds();
+  $('plusBtn').classList.toggle('hidden', settings.mode !== 'sarabanda');
+  $('plusBtn').textContent = '+1 s';
+  $('modePlayer').textContent = modeLabel();
+  drawProgress();
+}
+function drawProgress() {
+  $('progress').style.width = Math.min(100, 100 * (audio.src === SILENCE ? 0 : audio.currentTime) / limit) + '%';
+}
+
+// controllo del tempo a ogni fotogramma: con la modalita' Sarabanda serve precisione al decimo di secondo
+function watch() {
+  if (audio.paused) return;
+  drawProgress();
+  if (audio.currentTime >= limit) {
+    audio.pause();
+    $('status').textContent = 'Tempo!';
+    return;
+  }
+  requestAnimationFrame(watch);
+}
+audio.addEventListener('play', () => { if (audio.src !== SILENCE) { setPlaying(true); requestAnimationFrame(watch); } });
+audio.addEventListener('pause', () => setPlaying(false));
+audio.addEventListener('ended', () => { setPlaying(false); if (audio.src !== SILENCE) $('status').textContent = 'Tempo!'; });
+
+function replay() {
+  if (audio.ended || audio.currentTime >= limit - 0.05) audio.currentTime = 0;
+  $('status').textContent = 'Indovina!';
+  audio.play();
+}
+$('playBtn').onclick = () => {
+  if (!audio.src || audio.src === SILENCE) return;
+  if (audio.paused) replay(); else audio.pause();
+};
+// Sarabanda: un secondo in piu', e si riascolta dall'inizio
+$('plusBtn').onclick = () => {
+  if (!audio.src || audio.src === SILENCE) return;
+  limit = Math.min(30, limit + 1);
+  $('plusBtn').textContent = '+1 s (' + limit + ')';
+  audio.currentTime = 0; $('status').textContent = 'Indovina!'; audio.play();
+};
+$('revealBtn').onclick = () => {
+  const i = current && current.info;
+  if (!i) return;
+  // carta colonne sonore: in grande l'anno dell'opera, sopra film/serie/cartone
+  const film = current.film && i.o;
+  $('rK').textContent = film ? (TIPI[i.k] || '') : '';
+  $('rO').textContent = film ? i.o : '';
+  $('rY').textContent = (film ? i.oy : i.y) || '';
+  $('rT').textContent = i.t || ''; $('rA').textContent = i.a || '';
+  $('rAl').textContent = film ? '' : (i.al || '');
+  $('reveal').classList.remove('hidden'); $('revealBtn').classList.add('hidden');
+};
+$('nextBtn').onclick = startScan;
+$('scanStart').onclick = startScan;
+$('scanCancel').onclick = () => { pauseScan(); show('home'); };
+$('manualBtn').onclick = () => $('manual').classList.toggle('hidden');
+$('manualGo').onclick = () => {
+  const id = trackId($('manualText').value);
+  if (id) { audio.src = SILENCE; audio.play().catch(() => {}); load(id, isFilmCard($('manualText').value)); }
+  else alert('Link non valido: deve essere un link a una canzone Spotify.');
+};
+
+// per le prove: index.html#t=<codice> (carta normale) o #c=<codice> (carta colonne sonore); aggiungere &s per aprire la soluzione
+{
+  const m = /#([tc])=([A-Za-z0-9]{22})/.exec(location.hash);
+  if (m) load(m[2], m[1] === 'c').then(() => { if (location.hash.includes('&s')) $('revealBtn').onclick(); });
+}
+if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
+</script>
+</body>
+</html>

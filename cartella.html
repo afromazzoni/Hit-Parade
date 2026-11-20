@@ -1,0 +1,342 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#16100c">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<title>Cartella Bingo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bangers&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #16100c; --card: #2b1c13; --card2: #3b271a; --text: #fff3ea; --muted: #d9ab8c;
+    --accent: #ff7a1f; --accent2: #ff3d2e; --ok: #3ddc97; --warn: #ffd27a; --on: #ffffff;
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { margin: 0; background: var(--bg); color: var(--text); font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  body { min-height: 100dvh; padding: env(safe-area-inset-top) 16px calc(env(safe-area-inset-bottom) + 40px); }
+  header { display: flex; align-items: center; justify-content: space-between; padding: 12px 0 8px; }
+  header .t { font-weight: 800; letter-spacing: .12em; font-size: 14px; color: var(--muted); }
+  header a { color: var(--muted); text-decoration: none; font-size: 14px; padding: 6px; }
+  main { width: min(440px, 100%); margin: 0 auto; display: flex; flex-direction: column; gap: 12px; }
+  .hidden { display: none !important; }
+  button { font: inherit; border: 0; border-radius: 999px; color: var(--text); cursor: pointer; }
+  .big { width: 100%; padding: 18px; font-size: 19px; font-weight: 800; background: linear-gradient(135deg, var(--accent), var(--accent2)); color: var(--on); text-shadow: 0 1px 2px #0005; }
+  .ghost { padding: 13px 20px; font-size: 15px; background: var(--card); }
+  .muted { color: var(--muted); font-size: 14px; line-height: 1.4; margin: 0; }
+
+  .top { display: flex; align-items: baseline; justify-content: space-between; }
+  .top h1 { margin: 0; font-size: 22px; font-weight: 900; }
+  .top .n { color: var(--muted); font-size: 14px; font-variant-numeric: tabular-nums; }
+  .status { background: var(--card); border-radius: 14px; padding: 10px 12px; font-size: 14px; line-height: 1.4; min-height: 42px; }
+  .status.hot { background: #4a2d0c; color: var(--warn); font-weight: 700; }
+  .status.win { background: #0f3b2a; color: var(--ok); font-weight: 800; }
+
+  /* la cartella */
+  .grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; }
+  /* un colore per lettera, dalla piu' facile (A, verde) alla piu' difficile (E, rosso) */
+  .lA { --c: #3ddc97; --t: #3ddc9724; }
+  .lB { --c: #4cc9f0; --t: #4cc9f024; }
+  .lC { --c: #b98cff; --t: #b98cff26; }
+  .lD { --c: #ffb020; --t: #ffb02024; }
+  .lE { --c: #ff4d6d; --t: #ff4d6d26; }
+  .cell { aspect-ratio: 1; border-radius: 14px; background: var(--t, var(--card2)); display: flex; flex-direction: column; align-items: center; justify-content: center;
+    position: relative; user-select: none; border: 2px solid transparent; padding: 2px; overflow: hidden; }
+  .cell .L { font-size: clamp(24px, 8vw, 34px); font-weight: 900; line-height: 1; color: var(--c, var(--text)); }
+  .cell .c { font-size: 9px; color: var(--muted); line-height: 1.1; text-align: center; margin-top: 3px; max-height: 2.2em; overflow: hidden; }
+  .cell.marked { background: var(--c); }
+  .cell.marked .L, .cell.marked .c { opacity: .3; color: #000; }
+  .cell.marked::after { content: "✕"; position: absolute; inset: 0; display: grid; place-items: center; font-size: clamp(34px, 12vw, 50px); font-weight: 900; color: #fff; text-shadow: 0 2px 6px #000a; }
+  .cell.hot { border: 2px dashed #fff; }
+  .cell.hot::before { content: "🔥"; position: absolute; top: 2px; right: 4px; font-size: 12px; }
+  .cell.win { box-shadow: 0 0 0 3px #fff, 0 0 16px #fffa; animation: glow 1.2s ease-in-out infinite alternate; }
+  @keyframes glow { to { box-shadow: 0 0 0 3px #fff, 0 0 4px #fff4; } }
+  .lt { color: var(--c); font-weight: 900; }
+  /* dentro il Bingo del DJ: niente intestazione, la chiude il Bingo */
+  .embed header { display: none; }
+  .embed { padding-top: 12px; }
+  .cell.pop { animation: pop .25s ease-out; }
+  @keyframes pop { 50% { transform: scale(.88); } }
+
+  /* la risposta, scritta grande in stile fumetto per farla leggere agli altri */
+  .answer { background: #fff8e6; border-radius: 18px; padding: 10px 12px 12px; box-shadow: 0 4px 0 #0006; }
+  .answer label { display: block; font-family: Bangers, "Comic Sans MS", "Comic Neue", cursive; letter-spacing: .06em; color: #c2410c; font-size: 18px; }
+  .answer textarea { width: 100%; border: 0; background: transparent; resize: none; outline: none; color: #1a1a1a; padding: 0;
+    font-family: Bangers, "Comic Sans MS", "Comic Neue", cursive; font-size: 34px; line-height: 1.15; letter-spacing: .03em; min-height: 1.2em; }
+  .answer textarea::placeholder { color: #0003; }
+  .answer .btns { display: flex; gap: 8px; margin-top: 6px; }
+  .answer .btns button { flex: 1; padding: 11px; font-size: 15px; font-weight: 700; }
+  .answer .show { background: linear-gradient(135deg, var(--accent), var(--accent2)); color: #fff; }
+  .answer .clear { background: #0000000f; color: #444; }
+  #shown { position: fixed; inset: 0; z-index: 12; background: #fff8e6; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px; text-align: center; }
+  #shownText { font-family: Bangers, "Comic Sans MS", "Comic Neue", cursive; color: #111; line-height: 1.1; letter-spacing: .03em; overflow-wrap: normal; width: 100%; }
+  #shownWho { font-family: Bangers, "Comic Sans MS", cursive; color: #c2410c; font-size: 22px; letter-spacing: .06em; margin-bottom: 10px; }
+  #shown small { position: absolute; bottom: calc(env(safe-area-inset-bottom) + 16px); color: #0008; font-size: 13px; }
+
+  /* categorie */
+  .cats { background: var(--card); border-radius: 18px; padding: 12px; display: flex; flex-direction: column; gap: 8px; }
+  .cats h3 { margin: 0 0 2px; font-size: 14px; color: var(--muted); letter-spacing: .04em; }
+  .cat { display: flex; gap: 10px; align-items: flex-start; }
+  .cat .L { flex: none; width: 34px; height: 34px; border-radius: 10px; display: grid; place-items: center; font-weight: 900; font-size: 19px; background: var(--c, var(--bg)); color: #16100c; }
+  .cat b { display: block; font-size: 15px; }
+  .cat small { display: block; color: var(--muted); font-size: 12px; line-height: 1.35; }
+  .ref { color: var(--warn); font-weight: 700; }
+
+  /* finestre */
+  .overlay { position: fixed; inset: 0; background: #000c; display: grid; place-items: center; padding: 16px; z-index: 10; }
+  .box { width: min(400px, 100%); background: var(--card); border-radius: 24px; padding: 20px; display: flex; flex-direction: column; gap: 12px; text-align: center; }
+  .box h2 { margin: 0; font-size: 22px; }
+  .bingo { font-size: clamp(56px, 20vw, 88px); font-weight: 900; line-height: 1; background: linear-gradient(135deg, var(--warn), var(--accent), var(--accent2));
+    -webkit-background-clip: text; background-clip: text; color: transparent; animation: boom .6s ease-out; }
+  @keyframes boom { 0% { transform: scale(.2) rotate(-10deg); } 70% { transform: scale(1.15) rotate(3deg); } 100% { transform: scale(1); } }
+  .confetti { position: fixed; top: -40px; font-size: 26px; pointer-events: none; z-index: 11; animation: fall linear forwards; }
+  @keyframes fall { to { transform: translateY(110vh) rotate(540deg); } }
+</style>
+</head>
+<body>
+<header>
+  <a href="./">← Hit Parade</a>
+  <span class="t">CARTELLA</span>
+  <a href="regole.html">📖 Regole</a>
+</header>
+<main>
+  <div class="top"><h1>HIT PARADE BINGO</h1><span class="n" id="num"></span></div>
+  <div class="status" id="status"></div>
+  <div class="grid" id="grid"></div>
+  <p class="muted" id="count" style="text-align:center;font-size:13px"></p>
+  <div class="answer">
+    <label for="ans">LA MIA RISPOSTA</label>
+    <textarea id="ans" rows="1" placeholder="Scrivi qui…" autocomplete="off" autocorrect="off" spellcheck="false" autocapitalize="sentences"></textarea>
+    <div class="btns">
+      <button class="show" id="ansShow">👀 Mostra</button>
+      <button class="clear" id="ansClear">🧽 Cancella</button>
+    </div>
+  </div>
+  <div class="cats" id="cats"></div>
+  <button class="ghost" id="newBtn">🔄 Nuova cartella</button>
+</main>
+
+<!-- domanda (All-In, cancella, nuova cartella...) -->
+<div id="ask" class="overlay hidden">
+  <div class="box">
+    <h2 id="askT"></h2>
+    <p class="muted" id="askP"></p>
+    <button class="big" id="askOk"></button>
+    <button class="ghost" id="askNo"></button>
+  </div>
+</div>
+
+<!-- risposta a tutto schermo, da girare verso gli altri -->
+<div id="shown" class="hidden">
+  <div id="shownWho"></div>
+  <div id="shownText"></div>
+  <small>Tocca per chiudere</small>
+</div>
+
+<!-- BINGO -->
+<div id="win" class="overlay hidden">
+  <div class="box">
+    <div class="bingo">BINGO!</div>
+    <p style="margin:0;font-size:17px;font-weight:700" id="winNum"></p>
+    <p class="muted">Gridatelo forte e fate vedere la cartella al DJ. Se nello stesso turno fanno Bingo altri giocatori, si va allo Spareggio.</p>
+    <button class="big" id="winClose">Torna alla cartella</button>
+  </div>
+</div>
+
+<script src="categorie.js"></script>
+<script>
+const $ = id => document.getElementById(id);
+const EMBED = new URLSearchParams(location.search).has('dj');  // aperta dentro il Bingo del DJ
+if (EMBED) document.body.classList.add('embed');
+const LETTERS = ['A', 'B', 'C', 'D', 'E'];
+const CAT = Object.fromEntries((window.HP_CATS || []).map(c => [c.id, c]));
+// le 12 linee che fanno Bingo: 5 righe, 5 colonne, 2 diagonali
+const LINES = [];
+for (let r = 0; r < 5; r++) LINES.push([0, 1, 2, 3, 4].map(c => r * 5 + c));
+for (let c = 0; c < 5; c++) LINES.push([0, 1, 2, 3, 4].map(r => r * 5 + c));
+LINES.push([0, 6, 12, 18, 24], [4, 8, 12, 16, 20]);
+
+// ------------------------------------------------------------------ stato (salvato sul telefono)
+const KEY = 'hitparade-cartella';
+let S = null;
+try { S = JSON.parse(localStorage.getItem(KEY) || 'null'); } catch (e) {}
+function save() { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} }
+
+// ------------------------------------------------------------------ cartella
+// Stesso schema delle cartelle di carta: 25 caselle, ogni lettera 5 volte, mai tre lettere uguali in fila.
+// Il numero della cartella fa da "seme": stesso numero = stessa cartella.
+function rng(seed) {
+  return () => { seed |= 0; seed = seed + 0x6D2B79F5 | 0; let t = Math.imul(seed ^ seed >>> 15, 1 | seed);
+    t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; };
+}
+function makeCard(num) {
+  const rand = rng(num);
+  for (let tries = 0; tries < 500; tries++) {
+    const cells = LETTERS.flatMap(l => Array(5).fill(l));
+    for (let i = cells.length - 1; i > 0; i--) { const j = Math.floor(rand() * (i + 1)); [cells[i], cells[j]] = [cells[j], cells[i]]; }
+    let ok = true;
+    for (let r = 0; r < 5 && ok; r++) for (let c = 0; c < 5 && ok; c++) {
+      const v = cells[r * 5 + c];
+      if (c >= 2 && v === cells[r * 5 + c - 1] && v === cells[r * 5 + c - 2]) ok = false;
+      if (r >= 2 && v === cells[(r - 1) * 5 + c] && v === cells[(r - 2) * 5 + c]) ok = false;
+    }
+    if (ok) return cells;
+  }
+}
+function newCard(keepCats) {
+  const num = 1000 + Math.floor(Math.random() * 9000);
+  S = { num, cells: makeCard(num), marks: Array(25).fill(false), cats: keepCats && S ? S.cats : null, deck: keepCats && S ? S.deck : 'normale' };
+  save();
+}
+if (!S || !Array.isArray(S.cells) || S.cells.length !== 25 || !Array.isArray(S.marks)) newCard(false);
+
+// linee complete, e caselle "calde" (quelle che chiuderebbero una linea: servono l'All-In)
+const winLines = () => LINES.filter(l => l.every(i => S.marks[i]));
+function closingLines(i) { return LINES.filter(l => l.includes(i) && l.every(k => k === i || S.marks[k])); }
+function hotCells() { const h = new Set(); S.marks.forEach((m, i) => { if (!m && closingLines(i).length) h.add(i); }); return h; }
+
+// ------------------------------------------------------------------ disegno
+function catName(letter) { const id = S.cats && S.cats[LETTERS.indexOf(letter)]; return id && CAT[id] ? CAT[id].nome : ''; }
+function render(popIndex) {
+  $('num').textContent = 'Cartella n. ' + S.num;
+  const hot = hotCells(), wins = winLines(), winSet = new Set(wins.flat());
+  $('grid').innerHTML = S.cells.map((l, i) => {
+    const cls = ['cell', 'l' + l, S.marks[i] ? 'marked' : '', hot.has(i) ? 'hot' : '', winSet.has(i) ? 'win' : '', i === popIndex ? 'pop' : ''].join(' ');
+    return `<div class="${cls}" data-i="${i}"><span class="L">${l}</span><span class="c">${catName(l)}</span></div>`;
+  }).join('');
+  $('grid').querySelectorAll('.cell').forEach(el => el.onclick = () => tap(+el.dataset.i));
+
+  const st = $('status'), n = S.marks.filter(Boolean).length;
+  st.className = 'status';
+  if (wins.length) { st.classList.add('win'); st.textContent = '🎉 BINGO! Fate vedere la cartella al DJ.'; }
+  else if (hot.size) {
+    const need = [...new Set([...hot].map(i => S.cells[i]))].sort();
+    st.classList.add('hot');
+    st.innerHTML = `🔥 Ti manca una casella! Per barrarla serve un All-In vinto: ${need.length > 1 ? 'una di queste lettere' : 'la lettera'} ` +
+      need.map(l => `<span class="lt l${l}">${l}</span>`).join(', ') + '.';
+  } else st.textContent = n ? 'Tocca una casella con la lettera estratta quando superi la sfida.' : 'Tocca una casella per barrarla quando superi la sfida della sua lettera.';
+  $('count').textContent = `Caselle barrate: ${n} su 25`;
+
+  if (S.cats && S.cats.every(id => CAT[id])) {
+    $('cats').innerHTML = '<h3>CATEGORIE DI QUESTA PARTITA</h3>' + S.cats.map((id, i) => `<div class="cat l${LETTERS[i]}"><div class="L">${LETTERS[i]}</div>
+      <div><b>${CAT[id].nome}</b><small>${CAT[id].regola.replace('{ref}', "l'anno che mostra l'app del DJ")}</small></div></div>`).join('') +
+      (S.deck === 'colonne' ? '<p class="muted" style="font-size:12px">Mazzo colonne sonore: gli anni sono quelli del film, della serie o del cartone.</p>' : '');
+  } else {
+    $('cats').innerHTML = `<h3>CATEGORIE</h3><p class="muted">Inquadra con la fotocamera il QR sul telefono del DJ
+      (nel Bingo: <b>📱 Cartelle sul telefono</b>). Le categorie della partita compariranno qui e su ogni casella.</p>`;
+  }
+}
+
+// ------------------------------------------------------------------ finestre
+function ask(title, text, okLabel, noLabel) {
+  return new Promise(resolve => {
+    $('askT').textContent = title; $('askP').textContent = text;
+    $('askOk').textContent = okLabel; $('askNo').textContent = noLabel;
+    $('ask').classList.remove('hidden');
+    const done = v => { $('ask').classList.add('hidden'); resolve(v); };
+    $('askOk').onclick = () => done(true); $('askNo').onclick = () => done(false);
+  });
+}
+function showBingo() {
+  $('winNum').textContent = 'Cartella n. ' + S.num;
+  $('win').classList.remove('hidden');
+  if (navigator.vibrate) navigator.vibrate([100, 60, 100, 60, 300]);
+  const emo = ['🎉', '🎵', '⭐', '🎶', '🔥'];
+  for (let k = 0; k < 40; k++) {
+    const c = document.createElement('div');
+    c.className = 'confetti'; c.textContent = emo[k % emo.length];
+    c.style.left = (Math.random() * 100) + 'vw';
+    c.style.animationDuration = (1.8 + Math.random() * 1.8) + 's';
+    c.style.animationDelay = (Math.random() * 0.6) + 's';
+    document.body.appendChild(c);
+    setTimeout(() => c.remove(), 4500);
+  }
+}
+$('winClose').onclick = () => $('win').classList.add('hidden');
+
+// ------------------------------------------------------------------ tocchi
+async function tap(i) {
+  keepAwake();
+  if (S.marks[i]) {
+    if (!await ask('Cancellare questa casella?', 'Si cancella solo se l\'hai barrata per sbaglio, o se un avversario ti ha fatto un Furto.', 'Sì, cancella', 'No')) return;
+    S.marks[i] = false; save(); render(i);
+    return;
+  }
+  if (closingLines(i).length) {
+    const ok = await ask('🔥 Questa casella chiude una riga!',
+      'Puoi barrarla solo se hai vinto un All-In: hai dichiarato due categorie, le hai indovinate tutte e due, e questa è una delle due caselle.',
+      'Sì, All-In vinto!', 'No, non ancora');
+    if (!ok) return;
+    S.marks[i] = true; save(); render(i); showBingo();
+    return;
+  }
+  S.marks[i] = true; save(); render(i);
+  if (navigator.vibrate) navigator.vibrate(30);
+}
+
+// ------------------------------------------------------------------ la risposta
+const ans = $('ans');
+function growAnswer() { ans.style.height = 'auto'; ans.style.height = ans.scrollHeight + 'px'; }
+ans.value = S.answer || '';
+ans.oninput = () => { S.answer = ans.value; save(); growAnswer(); };
+$('ansClear').onclick = () => { ans.value = ''; S.answer = ''; save(); growAnswer(); ans.focus(); };
+$('ansShow').onclick = () => {
+  const txt = ans.value.trim();
+  if (!txt) { ans.focus(); return; }
+  ans.blur();  // chiude la tastiera
+  $('shownWho').textContent = 'Cartella n. ' + S.num;
+  const el = $('shownText');
+  el.textContent = txt;
+  $('shown').classList.remove('hidden');
+  // il carattere piu' grande che ci sta sullo schermo
+  // (senza spezzare le parole; solo una parola lunghissima, al minimo, va a capo a meta')
+  let size = 160;
+  el.style.fontSize = size + 'px'; el.style.overflowWrap = 'normal';
+  const maxH = window.innerHeight * 0.7, maxW = el.clientWidth;
+  while (size > 24 && (el.scrollHeight > maxH || el.scrollWidth > maxW)) { size -= 4; el.style.fontSize = size + 'px'; }
+  if (el.scrollWidth > maxW) el.style.overflowWrap = 'anywhere';
+};
+$('shown').onclick = () => $('shown').classList.add('hidden');
+// quando il font e' arrivato, ricalcolo l'altezza del riquadro
+if (document.fonts) document.fonts.ready.then(growAnswer);
+growAnswer();
+
+$('newBtn').onclick = async () => {
+  if (S.marks.some(Boolean) && !await ask('Nuova cartella?', 'Questa cartella e le caselle barrate si perdono. Le categorie restano quelle della partita.', 'Sì, cartella nuova', 'No')) return;
+  newCard(true); render();
+};
+
+// ------------------------------------------------------------------ categorie dal QR del DJ (#c=mezzo,intro,...&d=normale)
+async function readHash() {
+  const p = new URLSearchParams(location.hash.slice(1));
+  const cats = (p.get('c') || '').split(',').filter(Boolean);
+  if (cats.length !== 5 || !cats.every(id => CAT[id])) return;
+  history.replaceState(null, '', location.pathname + location.search);
+  const deck = p.get('d') === 'colonne' ? 'colonne' : 'normale';
+  const changed = !S.cats || S.cats.join() !== cats.join();
+  if (changed && S.cats && S.marks.some(Boolean)) {
+    // categorie nuove con una cartella gia' iniziata: nuova partita, o il DJ ha solo corretto una categoria?
+    const fresh = await ask('Categorie nuove dal DJ', 'È una nuova partita? Se sì, ti preparo una cartella nuova e pulita. Se il DJ ha solo cambiato una categoria, tieni questa.',
+      'Nuova partita', 'Tengo questa cartella');
+    if (fresh) newCard(false);
+  }
+  S.cats = cats; S.deck = deck; save(); render();
+}
+window.addEventListener('hashchange', readHash);
+
+// schermo sempre acceso durante la partita
+let wakeLock = null;
+async function keepAwake() { try { if ('wakeLock' in navigator && !wakeLock) { wakeLock = await navigator.wakeLock.request('screen'); wakeLock.onrelease = () => { wakeLock = null; }; } } catch (e) {} }
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible' && wakeLock === null && S.marks.some(Boolean)) keepAwake(); });
+
+render();
+readHash();
+if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
+</script>
+</body>
+</html>

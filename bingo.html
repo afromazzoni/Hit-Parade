@@ -1,0 +1,824 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#16100c">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="icon-192.png">
+<title>Hit Parade Bingo</title>
+<style>
+  :root {
+    --bg: #16100c; --card: #2b1c13; --card2: #3b271a; --text: #fff3ea; --muted: #d9ab8c;
+    --accent: #ff7a1f; --accent2: #ff3d2e; --ok: #3ddc97; --warn: #ffd27a;
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { margin: 0; background: var(--bg); color: var(--text); font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  body { min-height: 100dvh; display: flex; flex-direction: column; padding: env(safe-area-inset-top) 16px calc(env(safe-area-inset-bottom) + 76px); }
+  header { display: flex; align-items: center; justify-content: space-between; padding: 12px 0 8px; }
+  header .t { font-weight: 800; letter-spacing: .12em; font-size: 14px; color: var(--muted); }
+  header a, header button { color: var(--muted); text-decoration: none; font-size: 14px; background: none; border: 0; padding: 6px; font: inherit; cursor: pointer; }
+  main { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 16px; text-align: center; }
+  section { width: min(420px, 100%); display: flex; flex-direction: column; align-items: center; gap: 14px; }
+  .hidden { display: none !important; }
+  button { font: inherit; border: 0; border-radius: 999px; color: var(--text); cursor: pointer; }
+  .big { width: 100%; padding: 20px; font-size: 21px; font-weight: 800; background: linear-gradient(135deg, var(--accent), var(--accent2)); box-shadow: 0 10px 30px #ff6a2a55; }
+  .ghost { padding: 13px 20px; font-size: 16px; background: var(--card); }
+  .row { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; width: 100%; }
+  .row > * { flex: 1; }
+  h2 { margin: 6px 0 0; font-size: 22px; }
+  .muted { color: var(--muted); font-size: 14px; line-height: 1.4; margin: 0; }
+  .panel { width: 100%; background: var(--card); border-radius: 18px; padding: 14px; text-align: left; }
+  .panel h3 { margin: 0 0 8px; font-size: 15px; color: var(--muted); font-weight: 700; letter-spacing: .04em; }
+
+  /* setup */
+  .lvl { margin: 10px 0 4px; font-size: 13px; color: var(--muted); }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; }
+  .chip { padding: 8px 12px; border-radius: 999px; background: var(--card2); font-size: 14px; border: 2px solid transparent; opacity: .45; }
+  .chip.on { opacity: 1; border-color: var(--accent); }
+  .seg { display: flex; background: var(--card2); border-radius: 999px; padding: 4px; gap: 4px; }
+  .seg button { flex: 1; padding: 10px; border-radius: 999px; background: transparent; font-size: 15px; color: var(--muted); }
+  .seg button.on { background: var(--accent); color: #fff; font-weight: 700; }
+  .slider label { display: block; font-size: 15px; margin: 6px 0 2px; }
+  .slider input { width: 100%; accent-color: var(--accent); }
+  .game { display: flex; flex-direction: column; gap: 6px; }
+  .gcat { display: flex; align-items: center; gap: 10px; background: var(--card2); border-radius: 14px; padding: 8px 10px; }
+  .gcat .L { width: 36px; height: 36px; border-radius: 10px; display: grid; place-items: center; font-weight: 900; font-size: 20px; background: var(--bg); }
+  .gcat .n { flex: 1; font-weight: 700; }
+  .gcat .n small { display: block; font-weight: 400; color: var(--muted); font-size: 12px; }
+  .gcat button { background: var(--bg); width: 38px; height: 38px; font-size: 17px; }
+
+  /* legenda in alto durante la partita */
+  .legend { display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; width: 100%; }
+  .legend div { background: var(--card); border-radius: 10px; padding: 5px 2px; font-size: 10px; line-height: 1.2; color: var(--muted); min-height: 44px; }
+  .legend b { display: block; font-size: 17px; color: var(--text); }
+  .legend .on { background: var(--accent); color: #fff; }
+  .legend .on b { color: #fff; }
+
+  /* estrazione */
+  .wheel { width: 190px; height: 190px; border-radius: 50%; display: grid; place-items: center; font-size: 96px; font-weight: 900;
+    background: radial-gradient(circle at 35% 30%, #5e2f1a, var(--card) 70%); box-shadow: 0 0 0 6px var(--card2), 0 20px 50px #0009; }
+  .wheel.spin { animation: wob .12s linear infinite; }
+  @keyframes wob { 50% { transform: scale(1.04) rotate(3deg); } }
+  .catname { font-size: 26px; font-weight: 900; }
+  .rule { background: var(--card); border-radius: 16px; padding: 12px 14px; font-size: 16px; line-height: 1.4; width: 100%; }
+  .ref { color: var(--warn); font-weight: 800; }
+  .allin { font-size: 13px; color: var(--warn); }
+
+  /* ascolto */
+  .disc { width: 170px; height: 170px; border-radius: 50%; background: repeating-radial-gradient(circle, #1b1b1b 0 2px, #262626 2px 4px);
+    box-shadow: 0 20px 50px #0009; display: grid; place-items: center; }
+  .disc::after { content: "?"; width: 64px; height: 64px; border-radius: 50%; display: grid; place-items: center; font-size: 36px; font-weight: 900;
+    background: linear-gradient(135deg, var(--accent), var(--accent2)); }
+  .spin2 { animation: rot 3s linear infinite; }
+  @keyframes rot { to { transform: rotate(360deg); } }
+  .phase { font-size: 30px; font-weight: 900; margin: 0; }
+  .count { font-size: 88px; font-weight: 900; line-height: 1; font-variant-numeric: tabular-nums; }
+  .count.low { color: var(--accent); }
+  .bar { width: 100%; height: 10px; border-radius: 5px; background: var(--card); overflow: hidden; }
+  .bar > div { height: 100%; width: 0; background: var(--ok); }
+
+  /* soluzione */
+  .sol { width: 100%; background: var(--card); border-radius: 20px; padding: 16px; }
+  .sol .k { color: var(--accent); font-size: 13px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; }
+  .sol .o { font-size: 22px; font-weight: 800; margin: 2px 0 6px; }
+  .sol .y { font-size: 64px; font-weight: 900; color: var(--accent); line-height: 1; }
+  .sol .h { font-size: 17px; font-weight: 700; margin-top: 6px; color: var(--warn); }
+  .sol .t { font-size: 20px; font-weight: 800; margin-top: 10px; }
+  .sol .a { color: var(--muted); margin-top: 2px; }
+  .sol .x { margin-top: 10px; font-size: 14px; color: var(--muted); border-top: 1px solid var(--card2); padding-top: 8px; }
+  .sol div:empty { display: none; }
+
+  /* scanner */
+  #scanBox { position: relative; width: 100%; aspect-ratio: 1; border-radius: 24px; overflow: hidden; background: #000; }
+  #video { width: 100%; height: 100%; object-fit: cover; }
+  #scanBox::after { content: ""; position: absolute; inset: 18%; border: 4px solid #fff; border-radius: 18px; box-shadow: 0 0 0 999px #0007; }
+
+  /* spareggio */
+  .stop { width: 100%; padding: 34px; font-size: 34px; font-weight: 900; background: #e0263c; border-radius: 28px; }
+
+  /* la cartella del DJ, a tutto schermo sopra la partita */
+  #myCard { position: fixed; inset: 0; z-index: 9; background: var(--bg); display: flex; flex-direction: column; padding-top: env(safe-area-inset-top); }
+  #myCardClose { margin: 10px 16px 0; padding: 12px; border-radius: 999px; background: var(--card); font-weight: 700; }
+  #myCardFrame { flex: 1; width: 100%; border: 0; }
+
+  /* un colore per lettera, come sulla cartella del telefono */
+  .legend div:nth-child(1) b { color: #3ddc97; } .legend div:nth-child(2) b { color: #4cc9f0; } .legend div:nth-child(3) b { color: #b98cff; }
+  .legend div:nth-child(4) b { color: #ffb020; } .legend div:nth-child(5) b { color: #ff4d6d; }
+
+  /* QR per le cartelle sul telefono */
+  .overlay { position: fixed; inset: 0; background: #000c; display: grid; place-items: center; padding: 16px; z-index: 10; overflow-y: auto; }
+  .sheetbox { width: min(420px, 100%); background: var(--card); border-radius: 24px; padding: 18px; display: flex; flex-direction: column; gap: 12px; text-align: center; }
+  #shareQr { background: #fff; border-radius: 16px; padding: 14px; align-self: center; width: min(280px, 100%); }
+  #shareQr svg, #shareQr img { display: block; width: 100%; height: auto; }
+  .shareCats { font-size: 13px; color: var(--muted); line-height: 1.5; }
+  .shareCats b { color: var(--text); }
+
+  /* palette arancione: testo bianco con un filo di ombra sui pulsanti */
+  :root { --on: #ffffff; }
+  .big, .disc::after, .seg button.on, .legend .on, .legend .on b { color: var(--on) !important; text-shadow: 0 1px 2px #0005; }
+</style>
+</head>
+<body>
+<header>
+  <a href="./">← Hit Parade</a>
+  <span class="t">BINGO</span>
+  <button id="setupBtn">⚙ Partita</button>
+</header>
+<main>
+
+  <!-- PREPARAZIONE -->
+  <section id="setup">
+    <h2>Nuova partita</h2>
+    <div class="panel">
+      <h3>MAZZO</h3>
+      <div class="seg" id="deckSeg"><button data-d="normale">🎵 Canzoni</button><button data-d="colonne">🎬 Colonne sonore</button></div>
+      <p class="muted" style="margin-top:8px" id="deckNote"></p>
+    </div>
+    <div class="panel">
+      <h3>CATEGORIE DI QUESTA PARTITA</h3>
+      <div class="game" id="game"></div>
+      <button class="ghost" id="reroll" style="width:100%;margin-top:10px">🎲 Pesca altre categorie</button>
+      <p class="muted" style="margin-top:8px">Una per livello, da A (facile) a E (difficile). Con 🔄 cambi solo quella.</p>
+    </div>
+    <div class="panel">
+      <h3>CATEGORIE CHE POSSONO USCIRE</h3>
+      <div id="pool"></div>
+    </div>
+    <div class="panel slider">
+      <h3>TEMPI</h3>
+      <label>Ascolto: <b id="listenVal"></b></label>
+      <input type="range" id="listen" min="5" max="30" step="1">
+      <label>Tempo per rispondere (a musica ferma): <b id="answerVal"></b></label>
+      <input type="range" id="answer" min="5" max="90" step="5">
+      <button class="ghost" id="gongTest" style="width:100%;margin-top:12px">🔔 Prova il gong di fine tempo</button>
+    </div>
+    <button class="big" id="startBtn">▶ Inizia la partita</button>
+    <button class="ghost shareBtn" style="width:100%">📱 Cartelle sul telefono</button>
+    <div class="row"><a class="ghost" href="cartelle.html" style="text-decoration:none;text-align:center;color:var(--text)">🖨 Stampa cartelle</a><a class="ghost" href="regole.html" style="text-decoration:none;text-align:center;color:var(--text)">📖 Regole</a></div>
+  </section>
+
+  <!-- TURNO: ESTRAZIONE -->
+  <section id="turn" class="hidden">
+    <div class="legend" id="legend"></div>
+    <div class="wheel" id="wheel">?</div>
+    <div class="catname" id="catName">Estrai una categoria</div>
+    <div class="rule hidden" id="catRule"></div>
+    <div class="allin hidden" id="allinNote">✋ Chi vuole fare All-In lo dichiari adesso, prima che parta la musica.<br>Per chiudere una riga l'All-In è obbligatorio.</div>
+    <button class="big" id="drawBtn">🎡 Estrai</button>
+    <button class="big hidden" id="scanBtn">📷 Scansiona carta</button>
+    <div class="row">
+      <button class="ghost" id="tieBtn">🏆 Spareggio</button>
+      <a class="ghost" href="regole.html" style="text-decoration:none;text-align:center;color:var(--text)">📖 Regole</a>
+    </div>
+    <div class="row">
+      <button class="ghost myCardBtn">🎟 La mia cartella</button>
+      <button class="ghost shareBtn">📱 Cartelle giocatori</button>
+    </div>
+  </section>
+
+  <!-- SCANNER -->
+  <section id="scan" class="hidden">
+    <div id="scanBox"><video id="video" playsinline muted></video></div>
+    <p class="muted" id="scanMsg">Inquadra il QR della carta (senza guardare il retro!)</p>
+    <button class="ghost" id="scanCancel">Annulla</button>
+  </section>
+
+  <!-- ASCOLTO E RISPOSTA -->
+  <section id="play" class="hidden">
+    <div class="legend" id="legend2"></div>
+    <div class="disc" id="disc"></div>
+    <p class="phase" id="phase">Carico…</p>
+    <div class="muted" id="phaseSub"></div>
+    <div class="count hidden" id="count"></div>
+    <div class="bar"><div id="bar"></div></div>
+    <button class="big" id="solBtn">Soluzione</button>
+    <div class="row">
+      <button class="ghost" id="skipBtn">⏭ Salta carta</button>
+    </div>
+  </section>
+
+  <!-- SOLUZIONE -->
+  <section id="solution" class="hidden">
+    <div class="legend" id="legend3"></div>
+    <div class="sol">
+      <div class="k" id="sK"></div>
+      <div class="o" id="sO"></div>
+      <div class="y" id="sY"></div>
+      <div class="h" id="sH"></div>
+      <div class="t" id="sT"></div>
+      <div class="a" id="sA"></div>
+      <div class="x" id="sX"></div>
+    </div>
+    <button class="big" id="nextBtn">▶ Prossimo turno</button>
+    <div class="row">
+      <button class="ghost myCardBtn">🎟 La mia cartella</button>
+      <button class="ghost" id="replayBtn">🔊 Riascolta normale</button>
+    </div>
+  </section>
+
+  <!-- SPAREGGIO -->
+  <section id="tie" class="hidden">
+    <h2>🏆 Spareggio</h2>
+    <p class="muted" id="tieMsg">Scansiona una carta: la canzone parte da un punto a caso. Quando vuoi premi STOP: i finalisti hanno 3 secondi per prenotarsi battendo la mano sul tavolo, poi chi si è prenotato canta la riga successiva.</p>
+    <div class="count hidden" id="tieCount"></div>
+    <button class="big" id="tieScan">📷 Scansiona carta</button>
+    <button class="stop hidden" id="tieStop">STOP</button>
+    <div class="row">
+      <button class="ghost hidden" id="tieResume">▶ Riprendi (per controllare)</button>
+      <button class="ghost hidden" id="tieSol">Soluzione</button>
+    </div>
+    <div class="sol hidden" id="tieInfo"></div>
+    <button class="ghost" id="tieExit">← Torna alla partita</button>
+  </section>
+</main>
+
+<!-- LA CARTELLA DEL DJ (la stessa pagina dei giocatori, sopra la partita) -->
+<div id="myCard" class="hidden">
+  <button id="myCardClose">← Torna al Bingo</button>
+  <iframe id="myCardFrame" title="La mia cartella"></iframe>
+</div>
+
+<!-- QR PER LE CARTELLE SUL TELEFONO -->
+<div id="share" class="overlay hidden">
+  <div class="sheetbox">
+    <h2>📱 Cartelle sul telefono</h2>
+    <p class="muted">I giocatori inquadrano questo QR con la fotocamera del loro telefono: si apre la cartella con le categorie di questa partita.</p>
+    <div id="shareQr"></div>
+    <div class="shareCats" id="shareCats"></div>
+    <p class="muted" style="font-size:12px">Se cambiate le categorie, fate inquadrare di nuovo il QR: la cartella si aggiorna.</p>
+    <button class="big" id="shareClose">Fatto</button>
+  </div>
+</div>
+
+<canvas id="canvas" class="hidden"></canvas>
+<script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.js"></script>
+<script src="mazzi.js"></script>
+<script src="categorie.js"></script>
+<script>
+const $ = id => document.getElementById(id);
+const MAZZI = window.MAZZI || {};
+const LETTERS = ['A', 'B', 'C', 'D', 'E'];
+const TIPI = { film: 'Film', serie: 'Serie TV', cartone: 'Cartone animato', programma: 'Programma TV' };
+
+// ------------------------------------------------------------------ categorie (in categorie.js, condivise con cartella.html)
+const CATS = window.HP_CATS || [];
+const CAT = Object.fromEntries(CATS.map(c => [c.id, c]));
+
+// ------------------------------------------------------------------ impostazioni (salvate sul telefono)
+const S = { deck: 'normale', off: [], listen: 30, answer: 20, game: null, lastYear: null };
+try { Object.assign(S, JSON.parse(localStorage.getItem('hitparade-bingo') || '{}')); } catch (e) {}
+function save() { try { localStorage.setItem('hitparade-bingo', JSON.stringify(S)); } catch (e) {} }
+
+function available(lv) {
+  return CATS.filter(c => c.lv === lv && !S.off.includes(c.id) && (!c.colonne || S.deck === 'colonne'));
+}
+function pickFor(lv, avoid) {
+  let list = available(lv);
+  if (list.length > 1 && avoid) list = list.filter(c => c.id !== avoid);
+  return list.length ? list[Math.floor(Math.random() * list.length)].id : null;
+}
+function newGame() { S.game = LETTERS.map((_, i) => pickFor(i + 1)); save(); }
+function gameValid() {
+  return S.game && S.game.length === 5 && S.game.every((id, i) => id && CAT[id] && available(i + 1).some(c => c.id === id));
+}
+
+// ------------------------------------------------------------------ preparazione
+function renderSetup() {
+  document.querySelectorAll('#deckSeg button').forEach(b => b.classList.toggle('on', b.dataset.d === S.deck));
+  $('deckNote').textContent = S.deck === 'colonne'
+    ? 'Gli anni sono quelli del film, della serie o del cartone. C\'è anche la categoria "Titolo del film".'
+    : 'Gli anni sono quelli delle canzoni.';
+  if (!gameValid()) newGame();
+  $('game').innerHTML = S.game.map((id, i) => `<div class="gcat"><div class="L">${LETTERS[i]}</div>
+    <div class="n">${CAT[id].nome}<small>${CAT[id].regola.replace('{ref}', 'anno precedente').replace(/<[^>]+>/g, '')}</small></div>
+    <button data-i="${i}" title="Cambia">🔄</button></div>`).join('');
+  $('game').querySelectorAll('button').forEach(b => b.onclick = () => {
+    const i = +b.dataset.i; S.game[i] = pickFor(i + 1, S.game[i]); save(); renderSetup();
+  });
+  let pool = '';
+  for (let lv = 1; lv <= 5; lv++) {
+    pool += `<div class="lvl">Livello ${lv} · lettera ${LETTERS[lv - 1]}</div><div class="chips">` +
+      CATS.filter(c => c.lv === lv && (!c.colonne || S.deck === 'colonne'))
+        .map(c => `<span class="chip ${S.off.includes(c.id) ? '' : 'on'}" data-id="${c.id}">${c.nome}</span>`).join('') + '</div>';
+  }
+  $('pool').innerHTML = pool;
+  $('pool').querySelectorAll('.chip').forEach(ch => ch.onclick = () => {
+    const id = ch.dataset.id, c = CAT[id];
+    if (S.off.includes(id)) S.off = S.off.filter(x => x !== id);
+    else if (available(c.lv).length > 1) S.off.push(id);
+    else return alert('Ogni livello deve avere almeno una categoria.');
+    if (!gameValid()) S.game = S.game.map((g, i) => (g && available(i + 1).some(c => c.id === g)) ? g : pickFor(i + 1));
+    save(); renderSetup();
+  });
+  $('listen').value = S.listen; $('answer').value = S.answer;
+  $('listenVal').textContent = S.listen + ' secondi'; $('answerVal').textContent = S.answer + ' secondi';
+}
+document.querySelectorAll('#deckSeg button').forEach(b => b.onclick = () => { S.deck = b.dataset.d; if (!gameValid()) newGame(); save(); renderSetup(); });
+$('reroll').onclick = () => { newGame(); renderSetup(); };
+$('listen').oninput = e => { S.listen = +e.target.value; save(); $('listenVal').textContent = S.listen + ' secondi'; };
+$('answer').oninput = e => { S.answer = +e.target.value; save(); $('answerVal').textContent = S.answer + ' secondi'; };
+$('gongTest').onclick = () => { unlockAudio(); gong(); };
+$('startBtn').onclick = () => { S.lastYear = null; deckWarned = false; save(); unlockAudio(); keepAwake(); toTurn(); };
+$('setupBtn').onclick = () => { stopAll(); renderSetup(); show('setup'); };
+
+function legend(active) {
+  return S.game.map((id, i) => `<div class="${LETTERS[i] === active ? 'on' : ''}"><b>${LETTERS[i]}</b>${CAT[id].nome}</div>`).join('');
+}
+function show(id) { for (const s of ['setup', 'turn', 'scan', 'play', 'solution', 'tie']) $(s).classList.toggle('hidden', s !== id); }
+
+// ------------------------------------------------------------------ turno
+let turn = null;  // { letter, cat, id, film, info, buffer, fx }
+function refYear() { return S.lastYear || 2000; }
+
+function toTurn() {
+  stopAll();
+  turn = null;
+  $('legend').innerHTML = legend(null);
+  $('wheel').textContent = '?'; $('wheel').style.color = ''; $('catName').textContent = 'Estrai una categoria';
+  $('catRule').classList.add('hidden'); $('allinNote').classList.add('hidden');
+  $('drawBtn').classList.remove('hidden'); $('scanBtn').classList.add('hidden');
+  show('turn');
+}
+
+$('drawBtn').onclick = () => {
+  unlockAudio();
+  $('drawBtn').classList.add('hidden');
+  const final = Math.floor(Math.random() * 5);
+  // parte velocissima e rallenta: in tutto circa un secondo e mezzo
+  let i = Math.floor(Math.random() * 5), steps = 12 + Math.floor(Math.random() * 5), delay = 30;
+  $('wheel').classList.add('spin');
+  const tick = () => {
+    i = (i + 1) % 5;
+    $('wheel').textContent = LETTERS[i];
+    $('wheel').style.color = ['#3ddc97', '#4cc9f0', '#b98cff', '#ffb020', '#ff4d6d'][i];
+    $('legend').innerHTML = legend(LETTERS[i]);
+    blip(500 + i * 80, 0.03);
+    if (--steps > 0 || i !== final) { delay = Math.min(delay * 1.1, 220); setTimeout(tick, delay); }
+    else done();
+  };
+  const done = () => {
+    $('wheel').classList.remove('spin');
+    if (navigator.vibrate) navigator.vibrate([60, 40, 120]);
+    blip(988, 0.18);
+    const cat = CAT[S.game[final]];
+    turn = { letter: LETTERS[final], cat };
+    $('catName').textContent = cat.nome;
+    $('catRule').innerHTML = cat.regola.replace('{ref}', refYear());
+    $('catRule').classList.remove('hidden'); $('allinNote').classList.remove('hidden');
+    $('scanBtn').classList.remove('hidden');
+  };
+  tick();
+};
+$('scanBtn').onclick = () => { unlockAudio(); startScan(onCard); };
+
+// carta letta: scarico l'anteprima, poi ascolto e conto alla rovescia
+// carta di un tipo diverso dalla partita (colonne sonore in una partita "Canzoni" o viceversa): chiedo una volta per partita
+let deckWarned = false;
+function checkDeck(film) {
+  const want = film ? 'colonne' : 'normale';
+  if (want === S.deck || deckWarned) return;
+  deckWarned = true;
+  const msg = film
+    ? 'Questa è una carta COLONNE SONORE, ma la partita è impostata su "Canzoni".\n\nPassare alla modalità colonne sonore?\n(Le categorie restano queste: "Titolo del film" la puoi aggiungere da ⚙ Partita.)'
+    : 'Questa è una carta normale, ma la partita è impostata su "Colonne sonore".\n\nPassare alla modalità canzoni?';
+  if (!confirm(msg)) return;
+  S.deck = want;
+  if (want === 'normale') S.game = S.game.map((id, i) => CAT[id].colonne ? pickFor(i + 1) : id);  // "Titolo del film" non vale piu'
+  save();
+  const now = CAT[S.game[LETTERS.indexOf(turn.letter)]];
+  if (now !== turn.cat) {
+    turn.cat = now;
+    alert(`La categoria ${turn.letter} adesso è "${now.nome}": ${now.regola.replace('{ref}', refYear()).replace(/<[^>]+>/g, '')}\n\nRicordatevi di correggerla sulle cartelle di carta. Chi usa la cartella sul telefono inquadri di nuovo il QR (📱 Cartelle sul telefono).`);
+  }
+}
+
+async function onCard(id, film) {
+  checkDeck(film);
+  show('play');
+  $('legend2').innerHTML = legend(turn.letter);
+  $('phase').textContent = 'Carico…'; $('phaseSub').textContent = turn.cat.nome;
+  $('count').classList.add('hidden'); $('bar').style.width = '0';
+  turn.id = id; turn.film = film;
+  try {
+    const t = await loadTrack(id, film);
+    turn.info = t.info; turn.buffer = t.buffer;
+    listen();
+  } catch (e) {
+    $('phase').textContent = 'Niente anteprima';
+    $('phaseSub').textContent = 'Per questa carta non trovo la canzone: premi "Salta carta" e scansionane un\'altra.';
+  }
+}
+
+function listen() {
+  const mode = turn.cat.audio;
+  let fx = mode, seconds = S.listen;
+  if (mode === 'intro') seconds = 5;
+  turn.fx = fx;
+  $('phase').textContent = 'Ascoltate!';
+  $('phaseSub').textContent = turn.cat.nome + (turn.cat.id === 'prima' ? ' · rispetto al ' + refYear() : '');
+  $('disc').classList.add('spin2');
+  playBuffer(turn.buffer, fx, seconds, frac => { $('bar').style.width = (frac * 100) + '%'; }).then(ok => {
+    $('disc').classList.remove('spin2');
+    if (ok) answerTime();
+  });
+}
+
+let countTimer = null;
+function answerTime() {
+  let left = S.answer;
+  $('phase').textContent = 'Scrivete!';
+  $('phaseSub').textContent = turn.cat.nome;
+  $('count').classList.remove('hidden', 'low');
+  $('count').textContent = left;
+  $('bar').style.width = '100%';
+  const t0 = Date.now();
+  clearInterval(countTimer);
+  countTimer = setInterval(() => {
+    const l = Math.max(0, S.answer - Math.floor((Date.now() - t0) / 1000));
+    $('bar').style.width = (100 * (S.answer - (Date.now() - t0) / 1000) / S.answer) + '%';
+    if (l !== left) {
+      left = l;
+      $('count').textContent = left;
+      if (left <= 3 && left > 0) { $('count').classList.add('low'); blip(660, 0.08); }
+    }
+    if (left === 0) {
+      clearInterval(countTimer);
+      $('phase').textContent = 'Penne giù!';
+      gong();
+    }
+  }, 100);
+}
+
+$('skipBtn').onclick = () => { stopAll(); startScan(onCard); };
+$('solBtn').onclick = showSolution;
+
+function decadeHalf(y) {
+  y = +y; if (!y) return '';
+  const d = Math.floor(y / 10) * 10, label = d >= 2000 ? 'Anni ' + d : 'Anni ' + String(d).slice(2);
+  return `${label} – ${y % 10 < 5 ? 'prima' : 'seconda'} metà`;
+}
+function showSolution() {
+  stopAll();
+  const i = turn.info || {}, film = turn.film && i.o;
+  const year = +(film ? i.oy : i.y) || null;
+  $('legend3').innerHTML = legend(turn.letter);
+  $('sK').textContent = film ? (TIPI[i.k] || '') : '';
+  $('sO').textContent = film ? i.o : '';
+  $('sY').textContent = year || '?';
+  let h = '', x = '';
+  switch (turn.cat.id) {
+    case 'mezzo': h = decadeHalf(year); break;
+    case 'prima': {
+      const r = refYear();
+      h = !year ? '' : year < r ? `PRIMA del ${r}` : year > r ? `DOPO il ${r}` : `Stesso anno del ${r}: valgono entrambe`;
+      break;
+    }
+    case 'piu1': h = year ? `Valgono ${year - 1}, ${year} e ${year + 1}` : ''; break;
+    case 'asta': h = year ? `Vince l'intervallo valido più stretto che contiene il ${year}` : ''; break;
+    case 'vicino': h = 'Chi ha scritto proprio questo anno: FURTO!'; break;
+    case 'chi': h = 'Solista o gruppo? Voce maschile o femminile? Decide il DJ'; break;
+    case 'combo': h = 'Valgono solo artista E titolo'; break;
+    case 'film': h = i.o ? '' : 'Il titolo del film è sul retro della carta'; break;
+  }
+  if (!film && year) x = (x ? x + ' · ' : '') + decadeHalf(year);
+  if (!year) x = (x ? x + ' · ' : '') + 'Anno non nell\'elenco dell\'app: guardate il retro della carta';
+  $('sH').textContent = h;
+  $('sT').textContent = i.t || ''; $('sA').textContent = i.a || '';
+  $('sX').textContent = x;
+  if (year) { S.lastYear = year; save(); }
+  show('solution');
+}
+$('nextBtn').onclick = toTurn;
+$('replayBtn').onclick = () => {
+  if (src) { stopAll(); $('replayBtn').textContent = '🔊 Riascolta normale'; return; }
+  playBuffer(turn.buffer, 'normale', 30, () => {}).then(() => { $('replayBtn').textContent = '🔊 Riascolta normale'; });
+  $('replayBtn').textContent = '■ Ferma';
+};
+
+// ------------------------------------------------------------------ spareggio
+let tieTrack = null;
+$('tieBtn').onclick = () => { stopAll(); resetTie(); show('tie'); };
+$('tieExit').onclick = toTurn;
+function resetTie() {
+  tieTrack = null;
+  ['tieStop', 'tieResume', 'tieSol', 'tieInfo', 'tieCount'].forEach(k => $(k).classList.add('hidden'));
+  $('tieScan').classList.remove('hidden');
+}
+$('tieScan').onclick = () => { unlockAudio(); startScan(async (id, film) => {
+  show('tie'); resetTie();
+  $('tieScan').classList.add('hidden');
+  $('tieMsg').textContent = 'Carico…';
+  try {
+    tieTrack = await loadTrack(id, film);
+    $('tieMsg').textContent = 'Ascoltate… il DJ preme STOP quando vuole.';
+    $('tieStop').classList.remove('hidden');
+    tieTrack.pos = 2 + Math.random() * 14;
+    playFrom(tieTrack.buffer, tieTrack.pos);
+  } catch (e) { $('tieMsg').textContent = 'Niente anteprima per questa carta: scansionane un\'altra.'; $('tieScan').classList.remove('hidden'); }
+}); };
+$('tieStop').onclick = () => {
+  if (src) tieTrack.pos += (ctx.currentTime - playStartedAt);
+  stopAll();
+  $('tieStop').classList.add('hidden');
+  $('tieMsg').textContent = 'Prenotatevi battendo la mano sul tavolo!';
+  let n = 3;
+  $('tieCount').textContent = n; $('tieCount').classList.remove('hidden'); blip(660, 0.1);
+  const iv = setInterval(() => {
+    n--;
+    if (n > 0) { $('tieCount').textContent = n; blip(660, 0.1); }
+    else {
+      clearInterval(iv); $('tieCount').textContent = '🎤'; gong();
+      $('tieMsg').textContent = 'Chi si è prenotato per primo canta la riga successiva!';
+      $('tieResume').classList.remove('hidden'); $('tieSol').classList.remove('hidden');
+    }
+  }, 1000);
+};
+$('tieResume').onclick = () => { if (tieTrack) playFrom(tieTrack.buffer, tieTrack.pos); };
+$('tieSol').onclick = () => {
+  const i = tieTrack && tieTrack.info || {};
+  $('tieInfo').innerHTML = `<div class="t">${i.t || ''}</div><div class="a">${i.a || ''}</div>`;
+  $('tieInfo').classList.remove('hidden');
+};
+
+// ------------------------------------------------------------------ audio
+let ctx = null, src = null, extras = [], playStartedAt = 0, rafId = null, endTimer = null;
+function unlockAudio() {
+  if (!ctx) ctx = new (window.AudioContext || window.webkitAudioContext)();
+  ctx.resume();
+}
+function pick(a) { return a[Math.floor(Math.random() * a.length)]; }
+function blip(freq, len) {
+  if (!ctx) return;
+  const o = ctx.createOscillator(), g = ctx.createGain(), t = ctx.currentTime;
+  o.frequency.value = freq; g.gain.setValueAtTime(0.25, t); g.gain.exponentialRampToValueAtTime(0.001, t + len);
+  o.connect(g); g.connect(ctx.destination); o.start(t); o.stop(t + len + 0.02);
+}
+// gong: colpo + note metalliche "stonate" tra loro che sfumano in 4 secondi.
+// Fondamentale a 196 Hz: piu' in basso l'altoparlante del telefono non suona.
+function gong() {
+  if (!ctx) return;
+  ctx.resume();
+  const t = ctx.currentTime, comp = ctx.createDynamicsCompressor(), master = ctx.createGain();
+  comp.threshold.value = -14; comp.knee.value = 6; comp.ratio.value = 6; comp.attack.value = 0.002; comp.release.value = 0.3;
+  master.gain.value = 1.12;  // al massimo senza gracchiare
+  comp.connect(master); master.connect(ctx.destination);
+  const f0 = 196;
+  [[1, 1, 4.2], [1.52, 0.7, 3.4], [2.0, 0.55, 3.0], [2.74, 0.45, 2.5], [3.61, 0.35, 2.0], [4.53, 0.25, 1.6], [5.92, 0.18, 1.2], [7.1, 0.12, 0.9]]
+    .forEach(([r, a, d]) => {
+      const o = ctx.createOscillator(), g = ctx.createGain();
+      o.frequency.setValueAtTime(f0 * r * 1.03, t); o.frequency.exponentialRampToValueAtTime(f0 * r, t + 0.35);
+      g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(a, t + 0.008); g.gain.exponentialRampToValueAtTime(0.0006, t + d);
+      o.connect(g); g.connect(comp); o.start(t); o.stop(t + d + 0.1);
+    });
+  // il colpo del battente: un soffio di rumore che si spegne subito
+  const len = Math.floor(0.2 * ctx.sampleRate), nb = ctx.createBuffer(1, len, ctx.sampleRate), data = nb.getChannelData(0);
+  for (let i = 0; i < len; i++) data[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 3);
+  const ns = ctx.createBufferSource(), bp = ctx.createBiquadFilter(), ng = ctx.createGain();
+  ns.buffer = nb; bp.type = 'bandpass'; bp.frequency.value = 700; bp.Q.value = 0.7; ng.gain.value = 0.9;
+  ns.connect(bp); bp.connect(ng); ng.connect(comp); ns.start(t);
+  if (navigator.vibrate) navigator.vibrate([500, 100, 300]);
+}
+function stopAll() {
+  clearInterval(countTimer); clearTimeout(endTimer); cancelAnimationFrame(rafId);
+  if (src) { try { src.onended = null; src.stop(); } catch (e) {} src = null; }
+  extras.forEach(o => { try { o.stop(); } catch (e) {} }); extras = [];
+  if (pendingResolve) { pendingResolve(false); pendingResolve = null; }
+}
+
+function jsonp(url) {
+  return new Promise((resolve, reject) => {
+    const cb = 'cb' + Math.random().toString(36).slice(2), s = document.createElement('script');
+    const t = setTimeout(() => { done(); reject(new Error('timeout')); }, 10000);
+    function done() { clearTimeout(t); delete window[cb]; s.remove(); }
+    window[cb] = d => { done(); resolve(d); };
+    s.onerror = () => { done(); reject(new Error('rete')); };
+    s.src = url + (url.includes('?') ? '&' : '?') + 'output=jsonp&callback=' + cb;
+    document.head.appendChild(s);
+  });
+}
+
+async function loadTrack(id, film) {
+  let info = MAZZI[id] ? Object.assign({}, MAZZI[id]) : null, tr = null;
+  if (info && info.d) tr = await jsonp('https://api.deezer.com/track/' + info.d);
+  else {
+    // carta non in elenco: cerco per titolo (potrebbe essere un'altra versione)
+    const o = await fetch('https://open.spotify.com/oembed?url=https://open.spotify.com/track/' + id).then(r => r.json());
+    const r = await jsonp('https://api.deezer.com/search?limit=1&q=' + encodeURIComponent(o.title));
+    tr = r && r.data && r.data[0];
+    if (tr) info = { t: tr.title_short || tr.title, a: tr.artist.name, y: '' };
+  }
+  if (!tr || !tr.preview) throw new Error('nessuna anteprima');
+  const data = await fetch(tr.preview).then(r => r.arrayBuffer());
+  const buffer = await new Promise((ok, ko) => ctx.decodeAudioData(data, ok, ko));
+  return { info, buffer };
+}
+
+let reversedCache = new WeakMap();
+function reversed(b) {
+  if (reversedCache.has(b)) return reversedCache.get(b);
+  const r = ctx.createBuffer(b.numberOfChannels, b.length, b.sampleRate);
+  for (let c = 0; c < b.numberOfChannels; c++) {
+    const from = b.getChannelData(c), to = r.getChannelData(c);
+    for (let i = 0, n = from.length; i < n; i++) to[i] = from[n - 1 - i];
+  }
+  reversedCache.set(b, r);
+  return r;
+}
+
+// suona "seconds" secondi reali con l'effetto fx; risolve true a fine ascolto, false se interrotto
+let pendingResolve = null;
+function playBuffer(buffer, fx, seconds, onProgress) {
+  stopAll();
+  ctx.resume();
+  return new Promise(resolve => {
+    pendingResolve = resolve;
+    let buf = buffer, offset = 0, rate = 1, chain = [];
+    if (fx === 'caso') offset = 3 + Math.random() * Math.max(0, Math.min(15, buffer.duration - 8));
+    if (fx === 'lenta') rate = 0.5;
+    if (fx === 'veloce') rate = 1.9;
+    if (fx === 'contrario') buf = reversed(buffer);
+    if (fx === 'acqua') {
+      const f = ctx.createBiquadFilter(); f.type = 'lowpass'; f.frequency.value = 450; f.Q.value = 5;
+      const g = ctx.createGain(); g.gain.value = 1.8; chain.push(f, g);
+    }
+    if (fx === 'radio') {
+      const hp = ctx.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = 1300; hp.Q.value = 3;
+      const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 2000; lp.Q.value = 3;
+      const ws = ctx.createWaveShaper(), n = 1024, curve = new Float32Array(n);
+      for (let i = 0; i < n; i++) { const x = i * 2 / n - 1; curve[i] = Math.tanh(x * 6); }
+      ws.curve = curve; chain.push(hp, lp, ws);
+    }
+    if (fx === 'rutto') {
+      rate = 0.72;
+      const rm = ctx.createGain(); rm.gain.value = 0;
+      const osc = ctx.createOscillator(); osc.frequency.value = 45; osc.connect(rm.gain); osc.start(); extras.push(osc);
+      const ws = ctx.createWaveShaper(), n = 1024, curve = new Float32Array(n);
+      for (let i = 0; i < n; i++) { const x = i * 2 / n - 1; curve[i] = Math.tanh(x * 3); }
+      ws.curve = curve;
+      const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 1800;
+      const g = ctx.createGain(); g.gain.value = 1.6;
+      chain.push(rm, ws, lp, g);
+    }
+    if (fx === 'singhiozzo') {  // pezzetti di ~1 s e buchi di ~0,8 s, che variano a caso
+      const g = ctx.createGain(), t0 = ctx.currentTime + 0.05;
+      g.gain.setValueAtTime(0, ctx.currentTime);
+      for (let t = t0; t < t0 + seconds; ) {
+        const on = 1.0 * (0.5 + Math.random()), off = 0.8 * (0.5 + Math.random());
+        g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(1, t + 0.015);
+        g.gain.setValueAtTime(1, t + on); g.gain.linearRampToValueAtTime(0, t + on + 0.015);
+        t += on + off;
+      }
+      chain.push(g);
+    }
+    // quanti secondi di canzone servono per "seconds" secondi reali (con la velocita' cambiata)
+    const realSeconds = Math.min(seconds, (buf.duration - offset) / rate);
+    src = ctx.createBufferSource(); src.buffer = buf; src.playbackRate.value = rate;
+    if (fx === 'strumentale') {
+      const split = ctx.createChannelSplitter(2), inv = ctx.createGain(), mix = ctx.createGain();
+      inv.gain.value = -1; mix.gain.value = 1.4;
+      src.connect(split); split.connect(mix, 0); split.connect(inv, 1); inv.connect(mix);
+      const hp = ctx.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = 120;
+      mix.connect(hp); hp.connect(ctx.destination);
+      const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 120; lp.Q.value = 0.7;
+      src.connect(lp); lp.connect(ctx.destination);
+    } else {
+      let node = src;
+      for (const n of chain) { node.connect(n); node = n; }
+      node.connect(ctx.destination);
+    }
+    src.start(0, offset, realSeconds * rate);
+    playStartedAt = ctx.currentTime;
+    const finish = () => {
+      cancelAnimationFrame(rafId); clearTimeout(endTimer);
+      if (src) { try { src.onended = null; src.stop(); } catch (e) {} src = null; }
+      extras.forEach(o => { try { o.stop(); } catch (e) {} }); extras = [];
+      onProgress(1);
+      if (pendingResolve === resolve) { pendingResolve = null; resolve(true); }
+    };
+    endTimer = setTimeout(finish, realSeconds * 1000 + 100);
+    const frame = () => { onProgress(Math.min(1, (ctx.currentTime - playStartedAt) / realSeconds)); rafId = requestAnimationFrame(frame); };
+    frame();
+  });
+}
+function playFrom(buffer, pos) {  // spareggio: normale, da un punto, fino alla fine
+  stopAll(); ctx.resume();
+  src = ctx.createBufferSource(); src.buffer = buffer; src.connect(ctx.destination);
+  src.start(0, Math.min(pos, buffer.duration - 0.5));
+  playStartedAt = ctx.currentTime;
+}
+
+// ------------------------------------------------------------------ fotocamera (resta aperta: niente richieste di permesso ad ogni carta)
+let stream = null, scanning = false;
+const video = $('video'), canvas = $('canvas');
+function trackId(text) { const m = /track[\/:]([A-Za-z0-9]{22})/.exec(text || ''); return m ? m[1] : null; }
+function isFilmCard(text) { return /[?&]hp=c\b/.test(text || ''); }
+async function openCamera() {
+  if (stream && stream.getTracks().some(t => t.readyState === 'live')) { stream.getTracks().forEach(t => t.enabled = true); return true; }
+  try { stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' }, audio: false }); video.srcObject = stream; return true; }
+  catch (e) { return false; }
+}
+function pauseScan() { scanning = false; if (stream) stream.getTracks().forEach(t => t.enabled = false); }
+let scanBack = null, onScan = null;
+async function startScan(cb) {
+  stopAll();
+  onScan = cb;
+  scanBack = ['turn', 'play', 'tie', 'solution'].find(s => !$(s).classList.contains('hidden')) || 'turn';
+  show('scan'); $('scanMsg').textContent = 'Inquadra il QR della carta (senza guardare il retro!)';
+  if (!await openCamera()) { $('scanMsg').textContent = 'Non riesco ad aprire la fotocamera: controlla i permessi del browser.'; return; }
+  try { await video.play(); } catch (e) {}
+  scanning = true;
+  const detector = ('BarcodeDetector' in window) ? new BarcodeDetector({ formats: ['qr_code'] }) : null;
+  const c2 = canvas.getContext('2d', { willReadFrequently: true });
+  const tick = async () => {
+    if (!scanning) return;
+    let text = null;
+    if (video.readyState >= 2) {
+      try {
+        if (detector) { const codes = await detector.detect(video); if (codes.length) text = codes[0].rawValue; }
+        else {
+          const w = 480, h = Math.round(480 * video.videoHeight / video.videoWidth);
+          canvas.width = w; canvas.height = h; c2.drawImage(video, 0, 0, w, h);
+          const code = jsQR(c2.getImageData(0, 0, w, h).data, w, h, { inversionAttempts: 'dontInvert' });
+          if (code) text = code.data;
+        }
+      } catch (e) {}
+    }
+    if (text) {
+      const id = trackId(text);
+      if (id) { pauseScan(); if (navigator.vibrate) navigator.vibrate(80); return onScan(id, isFilmCard(text)); }
+      $('scanMsg').textContent = 'Questo QR non è una carta Hit Parade';
+    }
+    requestAnimationFrame(tick);
+  };
+  tick();
+}
+$('scanCancel').onclick = () => { pauseScan(); show(scanBack === 'scan' ? 'turn' : scanBack); };
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) { scanning = false; if (stream) { stream.getTracks().forEach(t => t.stop()); stream = null; } if (!$('scan').classList.contains('hidden')) show(scanBack || 'turn'); }
+  else keepAwake();
+});
+
+// schermo sempre acceso durante la partita
+let wakeLock = null;
+async function keepAwake() { try { if ('wakeLock' in navigator && !wakeLock) { wakeLock = await navigator.wakeLock.request('screen'); wakeLock.onrelease = () => { wakeLock = null; }; } } catch (e) {} }
+
+// ------------------------------------------------------------------ QR per le cartelle sul telefono
+// Il QR apre cartella.html con le categorie della partita nell'indirizzo: #c=mezzo,intro,...&d=normale
+function cartellaUrl() {
+  const base = location.protocol === 'file:' ? 'https://afromazzoni.github.io/Hit-Parade/' : location.href;
+  return new URL('cartella.html', base).href.split('#')[0] + '#c=' + S.game.join(',') + '&d=' + S.deck;
+}
+function loadQrLib() {
+  if (window.qrcode) return Promise.resolve();
+  return new Promise((ok, ko) => {
+    const s = document.createElement('script');
+    s.src = 'https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.js';
+    s.onload = ok; s.onerror = () => ko(new Error('rete'));
+    document.head.appendChild(s);
+  });
+}
+async function openShare() {
+  if (!gameValid()) newGame();
+  const url = cartellaUrl();
+  $('shareCats').innerHTML = S.game.map((id, i) => `<b>${LETTERS[i]}</b> ${CAT[id].nome}`).join(' · ');
+  $('shareQr').innerHTML = '<p class="muted" style="color:#555">Creo il QR…</p>';
+  $('share').classList.remove('hidden');
+  try {
+    await loadQrLib();
+    const qr = qrcode(0, 'M'); qr.addData(url); qr.make();
+    $('shareQr').innerHTML = qr.createSvgTag({ cellSize: 4, margin: 2, scalable: true });
+  } catch (e) {
+    $('shareQr').innerHTML = `<p style="color:#333;font-size:13px;word-break:break-all">Non riesco a creare il QR (connessione?). Mandate questo link ai giocatori:<br><br>${url}</p>`;
+  }
+}
+document.querySelectorAll('.shareBtn').forEach(b => b.onclick = openShare);
+
+// la cartella del DJ: si apre sopra la partita, cosi' il turno in corso non si perde
+document.querySelectorAll('.myCardBtn').forEach(b => b.onclick = () => {
+  if (!gameValid()) newGame();
+  const src = 'cartella.html?dj=1#c=' + S.game.join(',') + '&d=' + S.deck;
+  const f = $('myCardFrame');
+  if (f.getAttribute('src') !== src) f.setAttribute('src', src);
+  $('myCard').classList.remove('hidden');
+});
+$('myCardClose').onclick = () => $('myCard').classList.add('hidden');
+$('shareClose').onclick = () => $('share').classList.add('hidden');
+
+// ------------------------------------------------------------------ avvio
+renderSetup();
+show('setup');
+// per le prove dal computer: bingo.html#prova=<codice>&cat=<id categoria>
+{
+  const m = /#prova=([A-Za-z0-9]{22})&cat=(\w+)/.exec(location.hash);
+  if (m && CAT[m[2]]) {
+    unlockAudio(); turn = { letter: 'A', cat: CAT[m[2]] };
+    onCard(m[1], false);
+  }
+}
+if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
+</script>
+</body>
+</html>

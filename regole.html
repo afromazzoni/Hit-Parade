@@ -1,0 +1,222 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#16100c">
+<title>Hit Parade Bingo - Regole</title>
+<style>
+  @page { size: A4; margin: 16mm 16mm 16mm 16mm; }
+  * { box-sizing: border-box; }
+  body { font-family: "Segoe UI", Arial, sans-serif; font-size: 10.5pt; line-height: 1.42; color: #111; margin: 0; }
+  h1 { font-size: 26pt; margin: 0; letter-spacing: .02em; }
+  .sub { font-size: 11pt; color: #444; margin: 2px 0 14px; }
+  h2 { font-size: 14pt; margin: 18px 0 6px; padding-bottom: 3px; border-bottom: 2px solid #111; break-after: avoid; }
+  h3 { font-size: 11.5pt; margin: 12px 0 4px; break-after: avoid; }
+  p { margin: 0 0 7px; }
+  ul, ol { margin: 0 0 8px; padding-left: 20px; }
+  li { margin: 2px 0; }
+  .box { border: 1.5px solid #111; border-radius: 6px; padding: 8px 12px; margin: 8px 0 10px; break-inside: avoid; }
+  .box.grey { background: #eee; border-color: #999; }
+  .tag { display: inline-block; border: 1px solid #111; border-radius: 4px; padding: 0 6px; font-size: 8.5pt; font-weight: 700; letter-spacing: .04em; }
+  table { width: 100%; border-collapse: collapse; margin: 6px 0 10px; break-inside: auto; }
+  th, td { border: 1px solid #555; padding: 5px 7px; vertical-align: top; text-align: left; }
+  th { background: #ddd; font-size: 9.5pt; }
+  tr { break-inside: avoid; }
+  td.cat { font-weight: 700; white-space: nowrap; }
+  td.lv { text-align: center; font-weight: 700; }
+  .lvl { font-size: 9pt; color: #333; }
+  .proposta { border-left: 4px solid #111; background: #f2f2f2; padding: 4px 8px; font-size: 9.5pt; margin: 6px 0; }
+  .grid { display: grid; grid-template-columns: repeat(5, 9mm); gap: 0; border: 1.5px solid #111; width: max-content; margin: 6px 0; }
+  .grid div { width: 9mm; height: 9mm; border: .5px solid #555; display: grid; place-items: center; font-weight: 700; font-size: 10pt; }
+  .grid .j { background: #111; color: #fff; font-size: 7pt; }
+  .two { display: grid; grid-template-columns: auto 1fr; gap: 14px; align-items: center; }
+  .small { font-size: 9pt; color: #333; }
+  .pb { break-before: page; }
+  /* sullo schermo del telefono: piu' grande, con margini, tabella scorrevole, niente QR */
+  @media screen {
+    html { background: #16100c; }
+    body { max-width: 820px; margin: 0 auto; padding: 0 16px 60px; font-size: 15px; background: #fff; min-height: 100vh; }
+    .nav { position: sticky; top: 0; background: #16100c; margin: 0 -16px 14px; padding: 12px 16px; display: flex; justify-content: space-between; align-items: center; }
+    .nav a { color: #fff3ea; text-decoration: none; font-weight: 700; font-size: 15px; }
+    .nav span { color: #ff7a1f; font-weight: 800; letter-spacing: .12em; font-size: 13px; }
+    .qrbox { display: none; }
+    h1 { font-size: 30px; }
+    .tw { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+    .tw table { min-width: 560px; font-size: 13.5px; }
+    .grid div { width: 10vw; max-width: 40px; height: 10vw; max-height: 40px; }
+    .grid { grid-template-columns: repeat(5, auto); }
+    .two { grid-template-columns: 1fr; }
+  }
+  @media print { .nav { display: none; } }
+</style>
+</head>
+<body>
+<div class="nav"><a href="bingo.html">← Torna al Bingo</a><span>REGOLE</span></div>
+
+<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:16px">
+  <div>
+    <h1>Hit Parade Bingo</h1>
+    <div class="sub">Regole del gioco · versione 1 (prova) · da giocare con le carte Hit Parade e l'app <b>afromazzoni.github.io/Hit-Parade</b></div>
+  </div>
+  <div class="qrbox" style="text-align:center;flex:none">
+    <img src="qr-bingo.svg" alt="QR dell'app" style="width:30mm;height:30mm;display:block">
+    <div style="font-size:7.5pt;color:#333;margin-top:2px;line-height:1.25">Inquadra con il telefono<br>per aprire il Bingo</div>
+  </div>
+</div>
+
+<div class="box grey">
+<b>In breve.</b> Ogni giocatore ha una cartella con 25 caselle segnate dalle lettere A, B, C, D, E.
+A ogni turno l'app estrae una lettera, cioè una <b>categoria</b> (una sfida), e fa ascoltare una canzone.
+Chi supera la sfida barra una casella con quella lettera. Vince chi completa per primo una riga, una colonna o una diagonale.
+</div>
+
+<h2>1. Cosa serve</h2>
+<ul>
+  <li><b>Le carte Hit Parade</b>: un mazzo normale, oppure un mazzo di colonne sonore (vedi capitolo 8).</li>
+  <li><b>Un telefono con l'app</b> (afromazzoni.github.io/Hit-Parade, pulsante <i>Bingo</i>), con il volume alto o collegato a una cassa.</li>
+  <li><b>Una cartella per giocatore</b>, stampata dall'app (pagina <i>Stampa cartelle</i>) <b>oppure sul telefono</b>: il DJ preme <i>Cartelle sul telefono</i> e i giocatori inquadrano il QR con la fotocamera. Sul telefono si tocca la casella per barrarla, e l'app avvisa quando la casella chiude una riga (serve l'All-In). Il DJ apre la sua dal pulsante <i>La mia cartella</i>, senza uscire dalla partita. Le cartelle sono tutte diverse.</li>
+  <li><b>Una penna e dei foglietti</b> per scrivere le risposte.</li>
+</ul>
+
+<div class="two">
+  <div class="grid">
+    <div>C</div><div>A</div><div>E</div><div>B</div><div>D</div>
+    <div>B</div><div>D</div><div>A</div><div>E</div><div>C</div>
+    <div>E</div><div>C</div><div>D</div><div>D</div><div>A</div>
+    <div>A</div><div>E</div><div>B</div><div>C</div><div>B</div>
+    <div>D</div><div>B</div><div>C</div><div>A</div><div>E</div>
+  </div>
+  <div class="small">
+    <b>La cartella.</b> 5 righe per 5 colonne. Ogni lettera compare 5 volte: non c'è il JOLLY, tutte le caselle si conquistano. Le lettere sono mescolate in modo diverso su ogni cartella.
+    Le cartelle sono in bianco e nero: le categorie non sono stampate, perché cambiano da partita a partita. Le mostra l'app.
+  </div>
+</div>
+
+<h2>2. Preparazione</h2>
+<ol>
+  <li><b>Scegliete il DJ.</b> È chi tiene il telefono e le carte. <b>Il DJ gioca anche lui</b>: scansiona le carte dal lato del QR senza guardare il retro, e la soluzione la mostra l'app solo alla fine.</li>
+  <li><b>L'app sceglie le 5 categorie della partita</b>, una per ogni livello di difficoltà: A è la più facile, E la più difficile (vedi la tabella al capitolo 4). Se volete, potete sceglierle voi a mano. Le categorie restano scritte sullo schermo per tutta la partita.</li>
+  <li><b>Decidete i tempi</b> nelle opzioni dell'app:
+    <ul>
+      <li><b>tempo di ascolto</b>: quanto suona la canzone (30 secondi di solito; 20 o 10 per giocare più difficile);</li>
+      <li><b>tempo per rispondere</b>: quanto tempo c'è per scrivere, <b>dopo</b> che la musica si è fermata (per esempio 20 secondi).</li>
+    </ul>
+  </li>
+</ol>
+
+<h2>3. Un turno</h2>
+<ol>
+  <li><b>Estrazione.</b> Il DJ preme <i>Estrai</i>: la ruota gira e si ferma su una lettera. L'app mostra la categoria e la sua regola.</li>
+  <li><b>All-In.</b> Prima che parta la musica, chi vuole può dichiarare l'All-In (capitolo 5). Per barrare l'ultima casella di una riga è <b>obbligatorio</b>.</li>
+  <li><b>Ascolto.</b> Il DJ preme <i>Scansiona carta</i> e inquadra il QR di una carta presa dal mazzo. La canzone suona per il tempo di ascolto (alcune categorie lo cambiano: vedi la tabella).</li>
+  <li><b>Risposte.</b> Quando la musica si ferma parte il conto alla rovescia: <b>tutti i giocatori scrivono la risposta sul foglietto</b> (o nel riquadro <i>La mia risposta</i> della cartella sul telefono, che con <i>Mostra agli altri</i> la fa vedere a tutto schermo), in silenzio. Allo scadere, penne giù.</li>
+  <li><b>Soluzione.</b> Il DJ preme <i>Soluzione</i>: l'app mostra anno, metà del decennio, titolo e cantante (e il film, per le colonne sonore). Si leggono le risposte ad alta voce.</li>
+  <li><b>Si barra.</b> Chi ha superato la sfida barra <b>una</b> casella con la lettera estratta, a sua scelta.</li>
+</ol>
+<p class="small">Se una casella della lettera estratta non c'è più (tutte già barrate), quel giocatore questo turno non segna nulla, a meno che non abbia fatto All-In su un'altra lettera.</p>
+
+<h2>4. Le categorie</h2>
+<p>Ogni partita usa 5 categorie, una per livello. Le categorie dello stesso livello si danno il cambio da una partita all'altra, così il gioco non è mai uguale.
+Per le risposte su titoli e nomi: <b>vale se si capisce</b> (piccoli errori di ortografia vanno bene; titoli in italiano o in inglese vanno bene).</p>
+
+<div class="tw"><table>
+<tr><th style="width:9%">Livello</th><th style="width:21%">Categoria</th><th>Cosa si deve fare</th><th style="width:22%">Chi segna</th></tr>
+
+<tr><td class="lv">1<br><span class="lvl">A</span></td><td class="cat">Mezzo decennio</td>
+<td>Scrivere il decennio e la metà: es. <i>Anni 90 – prima metà</i> (1990-1994) oppure <i>Anni 90 – seconda metà</i> (1995-1999).</td>
+<td>Chi indovina decennio <b>e</b> metà.</td></tr>
+
+<tr><td class="lv">1<br><span class="lvl">A</span></td><td class="cat">Chi canta</td>
+<td>Scrivere chi canta: <b>solista uomo</b>, <b>solista donna</b>, <b>gruppo con voce maschile</b>, <b>gruppo con voce femminile</b>, oppure <b>misto</b> (duetti e "feat." con voci di uomo e donna).
+Se il brano è <b>strumentale</b>, il DJ scarta la carta e ne scansiona un'altra.</td>
+<td>Chi indovina. Nei casi dubbi decide il DJ.</td></tr>
+
+<tr><td class="lv">1<br><span class="lvl">A</span></td><td class="cat">Prima o dopo</td>
+<td>L'app mostra l'anno della canzone del turno precedente. Bisogna scrivere se questa canzone è uscita <b>prima</b> o <b>dopo</b>. Se è lo stesso anno, valgono entrambe.
+Al primo turno della partita il confronto è con il <b>2000</b>.</td>
+<td>Chi indovina.</td></tr>
+
+<tr><td class="lv">2<br><span class="lvl">B</span></td><td class="cat">Solo intro</td>
+<td>La canzone suona solo per <b>5 secondi</b>, poi parte il tempo per rispondere. Scrivere l'<b>artista oppure il titolo</b> (ne basta uno).</td>
+<td>Chi indovina uno dei due.</td></tr>
+
+
+
+<tr><td class="lv">2<br><span class="lvl">B</span></td><td class="cat">Titolo del film<br><span class="lvl">solo colonne sonore</span></td>
+<td>Scrivere il titolo del <b>film, serie TV o cartone</b> da cui viene la canzone (in italiano o nella lingua originale).</td>
+<td>Chi indovina.</td></tr>
+
+<tr><td class="lv">3<br><span class="lvl">C</span></td><td class="cat">Accelerata</td>
+<td>La canzone suona <b>accelerata</b>: più veloce e più acuta. Scrivere l'<b>artista oppure il titolo</b>.</td>
+<td>Chi indovina uno dei due.</td></tr>
+
+<tr><td class="lv">3<br><span class="lvl">C</span></td><td class="cat">La Combo</td>
+<td>Scrivere <b>sia l'artista sia il titolo</b>.</td>
+<td>Solo chi li indovina <b>tutti e due</b>.</td></tr>
+
+<tr><td class="lv">4<br><span class="lvl">D</span></td><td class="cat">±1 anno</td>
+<td>Scrivere l'anno di uscita. Vale l'anno esatto, quello prima e quello dopo (canzone del 1985: valgono 1984, 1985 e 1986).</td>
+<td>Chi ci rientra.</td></tr>
+
+<tr><td class="lv">4<br><span class="lvl">D</span></td><td class="cat">Asta al ribasso</td>
+<td>Scrivere un <b>intervallo di anni</b> (es. 1990-1993). L'intervallo deve <b>contenere</b> l'anno giusto, altrimenti non vale.
+Tra quelli validi vince il <b>più stretto</b> (1992-1992, un anno solo, è il massimo).</td>
+<td>Chi ha l'intervallo valido più stretto. A parità, tutti.</td></tr>
+
+<tr><td class="lv">5<br><span class="lvl">E</span></td><td class="cat">Il più vicino<br><span class="lvl">+ Furto</span></td>
+<td>Scrivere l'anno esatto. <b>Furto:</b> chi indovina l'anno <b>esatto</b>, oltre a barrare la sua casella, sceglie un avversario e gli fa cancellare una casella già barrata.</td>
+<td>Solo chi si avvicina di più all'anno giusto. A parità, tutti.</td></tr>
+
+
+</table></div>
+
+<div class="proposta"><b>Da confermare dopo le prime prove:</b> il Furto può colpire qualunque casella barrata.
+Un'alternativa più gentile: vietare di cancellare una casella che fa parte di una riga, colonna o diagonale a cui manca una sola casella per il Bingo.</div>
+
+<h2>5. La scommessa All-In</h2>
+<p>Serve a non annoiarsi quando manca solo una lettera che non esce mai.</p>
+<ul>
+  <li><b>Quando:</b> dopo l'estrazione e <b>prima</b> che il DJ faccia partire la musica.</li>
+  <li><b>Come:</b> il giocatore dice "All-In" e sceglie una <b>seconda categoria</b> tra le 5 della partita (anche una lettera diversa da quella estratta).
+    Non si possono scegliere <i>Il più vicino</i> e <i>Asta al ribasso</i>, perché dipendono dalle risposte degli altri.</li>
+  <li><b>La canzone è una sola:</b> si ascolta come richiede la categoria estratta, e si risponde a tutte e due le categorie sullo stesso foglietto.</li>
+  <li><b>Se le indovina entrambe:</b> barra <b>due caselle</b>, una per ciascuna lettera.</li>
+  <li><b>Se ne sbaglia anche una sola:</b> non barra <b>nulla</b>, neanche la casella della categoria estratta.</li>
+  <li><b>Per chiudere una riga l'All-In è obbligatorio.</b> La casella che completa una riga, una colonna o una diagonale si può barrare <b>solo</b> con un All-In vinto: una delle due caselle barrate deve essere proprio quella. Con una risposta giusta normale, quella casella non si può barrare (se ne può barrare un'altra della stessa lettera, se c'è).</li>
+</ul>
+
+<h2>6. Chi vince</h2>
+<ul>
+  <li>Vince chi completa per primo <b>una riga, una colonna o una diagonale</b> <b>con l'ultima casella barrata grazie a un All-In</b> (capitolo 5), e grida <b>"Bingo!"</b>.</li>
+  <li>Il Bingo si controlla alla fine del turno, dopo eventuali Furti: se un Furto rompe la riga, il Bingo non vale.</li>
+  <li>Se nello stesso turno fanno Bingo due o più giocatori, si va allo <b>Spareggio</b>.</li>
+</ul>
+
+<h2>7. Spareggio: Testa a testa</h2>
+<ol>
+  <li>Il DJ preme <i>Spareggio</i> nell'app e scansiona una carta a caso, senza mostrarla. La canzone parte da un punto a caso.</li>
+  <li>Quando vuole (a metà strofa, prima del ritornello...) il DJ preme <b>STOP</b>.</li>
+  <li>I finalisti hanno <b>3 secondi</b> per prenotarsi battendo la mano sul tavolo.</li>
+  <li>Chi si prenota per primo deve <b>cantare o dire la riga successiva</b> del testo. Se la indovina vince la partita; se sbaglia, la parola passa all'altro finalista.</li>
+  <li>Se nessuno la sa, si rifà con un'altra carta.</li>
+</ol>
+<p class="small">L'app non conosce i testi delle canzoni: se la riga è giusta lo decide il DJ (o, se il DJ è tra i finalisti, gli altri giocatori).</p>
+
+<h2>8. Variante colonne sonore</h2>
+<ul>
+  <li>Si gioca con un mazzo di carte <b>colonne sonore</b> (sul fronte c'è scritto "colonne sonore").</li>
+  <li>Tutte le categorie sugli anni usano <b>l'anno del film, della serie o del cartone</b>, non della canzone (per serie e cartoni: l'anno della prima stagione). È l'anno stampato in grande sul retro della carta.</li>
+  <li>Si aggiunge la categoria <b>Titolo del film</b> (livello 2).</li>
+  <li>In <i>Chi canta</i> capitano spesso brani strumentali: si scarta la carta e se ne prende un'altra.</li>
+</ul>
+
+<h2>9. Consigli per le prime partite</h2>
+<ul>
+  <li>Con 2-3 giocatori una partita dura circa 20-30 turni; con più giocatori il Bingo arriva prima.</li>
+  <li>Se una categoria non vi piace, toglietela nelle opzioni dell'app: uscirà un'altra dello stesso livello.</li>
+  <li>Segnatevi cosa funziona e cosa no: queste regole sono una prima versione da provare.</li>
+</ul>
+
+</body>
+</html>

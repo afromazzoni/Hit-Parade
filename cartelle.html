@@ -1,0 +1,191 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cartelle Bingo</title>
+<style>
+  :root { --bg: #16100c; --card: #2b1c13; --text: #fff3ea; --muted: #d9ab8c; --accent: #ff7a1f; --accent2: #ff3d2e; }
+  * { box-sizing: border-box; }
+  body { margin: 0; font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; background: var(--bg); color: var(--text); }
+  .ui { padding: 16px; display: flex; flex-direction: column; align-items: center; gap: 14px; text-align: center; }
+  .ui h1 { margin: 6px 0 0; font-size: 24px; }
+  .ui p { margin: 0; color: var(--muted); max-width: 420px; line-height: 1.4; font-size: 14px; }
+  .row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; justify-content: center; }
+  input[type=number] { width: 80px; font: inherit; font-size: 20px; padding: 8px; border-radius: 10px; border: 0; text-align: center; }
+  button { font: inherit; border: 0; border-radius: 999px; color: var(--on); cursor: pointer; padding: 14px 22px; font-weight: 800; font-size: 17px;
+    background: linear-gradient(135deg, var(--accent), var(--accent2)); }
+  button.ghost { background: var(--card); font-weight: 600; color: var(--text); }
+  a { color: var(--muted); }
+
+  /* --- le cartelle: bianco e nero, due per foglio A4 --- */
+  #sheets { background: #fff; color: #000; }
+  .sheet { width: 210mm; height: 297mm; padding: 10mm 15mm; display: flex; flex-direction: column; justify-content: space-between; margin: 0 auto; }
+  .card { height: 134mm; border: 1.2mm solid #000; border-radius: 4mm; padding: 5mm 7mm; display: flex; gap: 7mm; font-family: Arial, sans-serif; }
+  .card .left { flex: 1; display: flex; flex-direction: column; }
+  .card .title { font-size: 20pt; font-weight: 900; letter-spacing: .02em; }
+  .card .num { font-size: 10pt; margin-bottom: 3mm; }
+  .grid { display: grid; grid-template-columns: repeat(5, 19mm); grid-template-rows: repeat(5, 19mm); border: .8mm solid #000; width: max-content; }
+  .grid div { border: .3mm solid #000; display: grid; place-items: center; font-size: 24pt; font-weight: 900; }
+  .grid .j { background: #000; color: #fff; font-size: 9pt; letter-spacing: .05em; }
+  .side { width: 52mm; display: flex; flex-direction: column; gap: 2.2mm; font-size: 9pt; padding-top: 1mm; }
+  .side b { font-size: 10pt; }
+  .side .cat { display: flex; align-items: flex-end; gap: 2mm; height: 9mm; }
+  .side .cat span { font-weight: 900; font-size: 14pt; width: 6mm; }
+  .side .cat i { flex: 1; border-bottom: .3mm solid #000; height: 7mm; }
+  .side .how { margin-top: auto; font-size: 8pt; line-height: 1.35; color: #222; }
+  .cut { border-top: .3mm dashed #888; margin: 0 -10mm; }
+  @page { size: A4; margin: 0; }
+  @media print {
+    .ui { display: none; }
+    body { background: #fff; }
+    .sheet { break-after: page; }
+  }
+  @media screen {
+    #sheets { padding: 10px 0; overflow-x: auto; }
+    .sheet { box-shadow: 0 0 0 1px #ccc; margin-bottom: 10px; transform-origin: top left; }
+  }
+
+  /* palette arancione: testo bianco con un filo di ombra sui pulsanti */
+  :root { --on: #ffffff; }
+  .big, .disc::after, .seg button.on, .legend .on, .legend .on b { color: var(--on) !important; text-shadow: 0 1px 2px #0005; }
+</style>
+</head>
+<body>
+<div class="ui">
+  <h1>🖨 Cartelle del Bingo</h1>
+  <p>Ogni cartella è diversa: 5 righe per 5 colonne, le lettere A-E mescolate (5 per lettera). Due cartelle per foglio A4, in bianco e nero.</p>
+  <div class="row">
+    <label>Quante cartelle? <input type="number" id="n" min="1" max="60" value="8"></label>
+    <button class="ghost" id="go">🔀 Nuove cartelle</button>
+  </div>
+  <div class="row">
+    <button id="pdf">⬇ Scarica PDF</button>
+    <button class="ghost" id="print">🖨 Stampa</button>
+  </div>
+  <p>Dal telefono usa "Scarica PDF": poi lo stampi, lo mandi al computer o lo condividi. "Stampa" funziona dal computer.</p>
+  <a href="bingo.html">← torna al Bingo</a>
+</div>
+<div id="sheets"></div>
+
+<script>
+const LETTERS = ['A', 'B', 'C', 'D', 'E'];
+
+function shuffle(a) {
+  for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; }
+  return a;
+}
+
+// 25 caselle, niente JOLLY: ogni lettera esattamente 5 volte.
+// Evito tre lettere uguali in fila sulla stessa riga o colonna, per cartelle piu' "mescolate".
+function makeCard() {
+  for (let tries = 0; tries < 500; tries++) {
+    const cells = shuffle(LETTERS.flatMap(l => Array(5).fill(l)));
+    let ok = true;
+    for (let r = 0; r < 5 && ok; r++) for (let c = 0; c < 5 && ok; c++) {
+      const v = cells[r * 5 + c];
+      if (c >= 2 && v === cells[r * 5 + c - 1] && v === cells[r * 5 + c - 2]) ok = false;
+      if (r >= 2 && v === cells[(r - 1) * 5 + c] && v === cells[(r - 2) * 5 + c]) ok = false;
+    }
+    if (ok) return cells;
+  }
+}
+
+let cards = [];  // le cartelle create: le stesse per l'anteprima, la stampa e il PDF
+
+function cardHtml(n) {
+  const cells = cards[n - 1].map(v => `<div>${v}</div>`).join('');
+  const cats = LETTERS.map(l => `<div class="cat"><span>${l}</span><i></i></div>`).join('');
+  return `<div class="card"><div class="left"><div class="title">HIT PARADE BINGO</div><div class="num">Cartella n. ${n}</div>
+    <div class="grid">${cells}</div></div>
+    <div class="side"><b>Categorie di questa partita</b>${cats}
+    <div class="how">Scrivi a matita le categorie che mostra l'app.<br>Barra una casella con la lettera estratta quando superi la sfida.<br>
+    Vince chi completa una riga, una colonna o una diagonale.<br>L'ultima casella che chiude la riga si barra solo con l'All-In.</div></div></div>`;
+}
+
+function build() {
+  const n = Math.max(1, Math.min(60, +document.getElementById('n').value || 8));
+  cards = Array.from({ length: n }, makeCard);
+  let html = '';
+  for (let i = 1; i <= n; i += 2) {
+    html += `<div class="sheet">${cardHtml(i)}${i + 1 <= n ? '<div class="cut"></div>' + cardHtml(i + 1) : '<div></div>'}</div>`;
+  }
+  document.getElementById('sheets').innerHTML = html;
+  fit();
+}
+// sullo schermo del telefono il foglio A4 viene rimpicciolito per starci
+function fit() {
+  const w = document.documentElement.clientWidth, sheetW = 210 * 96 / 25.4;
+  const s = Math.min(1, (w - 10) / sheetW);
+  document.querySelectorAll('.sheet').forEach(el => {
+    el.style.transform = s < 1 ? `scale(${s})` : '';
+    el.style.marginBottom = s < 1 ? `${-(1 - s) * 297 * 96 / 25.4 + 10}px` : '10px';
+  });
+}
+matchMedia('print').addEventListener('change', e => { if (e.matches) document.querySelectorAll('.sheet').forEach(el => { el.style.transform = ''; el.style.marginBottom = ''; }); else fit(); });
+window.addEventListener('beforeprint', () => document.querySelectorAll('.sheet').forEach(el => { el.style.transform = ''; el.style.marginBottom = ''; }));
+window.addEventListener('afterprint', fit);
+window.addEventListener('resize', fit);
+document.getElementById('go').onclick = build;
+document.getElementById('print').onclick = () => { if (!document.querySelector('.sheet')) build(); window.print(); };
+
+// ---- PDF scaricabile: sul telefono la stampa spesso non si apre, il PDF invece si salva e si condivide
+function loadJsPDF() {
+  if (window.jspdf) return Promise.resolve();
+  return new Promise((ok, ko) => {
+    const s = document.createElement('script');
+    s.src = 'https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js';
+    s.onload = ok; s.onerror = () => ko(new Error('Non riesco a scaricare il creatore di PDF: controlla la connessione'));
+    document.head.appendChild(s);
+  });
+}
+function drawCard(doc, cells, n, x, y) {
+  const W = 180, H = 134, cell = 19, gx = x + 7, gy = y + 22;
+  doc.setDrawColor(0); doc.setLineWidth(1.2); doc.roundedRect(x, y, W, H, 4, 4, 'S');
+  doc.setFont('helvetica', 'bold'); doc.setFontSize(20); doc.text('HIT PARADE BINGO', gx, y + 12);
+  doc.setFont('helvetica', 'normal'); doc.setFontSize(10); doc.text('Cartella n. ' + n, gx, y + 18);
+  doc.setLineWidth(0.3);
+  cells.forEach((v, k) => {
+    const cx = gx + (k % 5) * cell, cy = gy + Math.floor(k / 5) * cell;
+    doc.rect(cx, cy, cell, cell, 'S');
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(24);
+    doc.text(v, cx + cell / 2, cy + cell / 2 + 0.5, { align: 'center', baseline: 'middle' });
+  });
+  doc.setLineWidth(0.8); doc.rect(gx, gy, cell * 5, cell * 5, 'S');
+  const sx = gx + cell * 5 + 8;
+  doc.setFont('helvetica', 'bold'); doc.setFontSize(10); doc.text('Categorie di questa partita', sx, y + 12);
+  doc.setLineWidth(0.3);
+  LETTERS.forEach((l, k) => {
+    const ly = y + 24 + k * 10;
+    doc.setFont('helvetica', 'bold'); doc.setFontSize(14); doc.text(l, sx, ly);
+    doc.line(sx + 7, ly + 1, sx + 58, ly + 1);
+  });
+  doc.setFont('helvetica', 'normal'); doc.setFontSize(8);
+  const how = "Scrivi a matita le categorie che mostra l'app. Barra una casella con la lettera estratta quando superi la sfida. " +
+              "Vince chi completa una riga, una colonna o una diagonale. L'ultima casella che chiude la riga si barra solo con l'All-In.";
+  doc.text(doc.splitTextToSize(how, 58), sx, y + 98);
+}
+document.getElementById('pdf').onclick = async () => {
+  const btn = document.getElementById('pdf');
+  try {
+    btn.textContent = 'Creo il PDF…';
+    if (!cards.length) build();
+    await loadJsPDF();
+    const doc = new window.jspdf.jsPDF({ unit: 'mm', format: 'a4' });
+    cards.forEach((cells, k) => {
+      const top = k % 2 === 0;
+      if (top && k > 0) doc.addPage();
+      drawCard(doc, cells, k + 1, 15, top ? 10 : 153);
+      if (top && k + 1 < cards.length) {  // linea tratteggiata per tagliare
+        doc.setLineWidth(0.2); doc.setDrawColor(140); doc.setLineDashPattern([2, 2], 0);
+        doc.line(5, 148.5, 205, 148.5); doc.setLineDashPattern([], 0); doc.setDrawColor(0);
+      }
+    });
+    doc.save(`cartelle bingo (${cards.length}).pdf`);
+  } catch (e) { alert(e.message); }
+  btn.textContent = '⬇ Scarica PDF';
+};
+build();
+</script>
+</body>
+</html>

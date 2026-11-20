@@ -1,0 +1,220 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#16100c">
+<title>Prova effetti</title>
+<style>
+  :root { --bg: #16100c; --card: #2b1c13; --card2: #3b271a; --text: #fff3ea; --muted: #d9ab8c; --accent: #ff7a1f; --accent2: #ff3d2e; }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  body { margin: 0; min-height: 100dvh; background: var(--bg); color: var(--text); font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    padding: 16px 16px 90px; display: flex; flex-direction: column; align-items: center; gap: 14px; text-align: center; }
+  h1 { margin: 6px 0 0; font-size: 22px; }
+  p { margin: 0; color: var(--muted); font-size: 14px; max-width: 360px; line-height: 1.4; }
+  button { font: inherit; border: 0; border-radius: 16px; color: var(--text); cursor: pointer; }
+  .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; width: min(380px, 100%); }
+  .fx { background: var(--card); padding: 16px 10px; font-size: 16px; font-weight: 700; }
+  .fx small { display: block; font-weight: 400; color: var(--muted); font-size: 12px; margin-top: 3px; }
+  .fx.on { background: var(--card2); outline: 2px solid var(--accent); }
+  .big { width: min(380px, 100%); padding: 18px; font-size: 19px; font-weight: 800; background: linear-gradient(135deg, var(--accent), var(--accent2)); border-radius: 999px; }
+  .ghost { padding: 12px 18px; background: var(--card); border-radius: 999px; }
+  #status { font-size: 15px; min-height: 20px; }
+  #sol { background: var(--card); border-radius: 16px; padding: 12px 16px; width: min(380px, 100%); }
+  .hidden { display: none !important; }
+  .sl { width: min(380px, 100%); background: var(--card); border-radius: 16px; padding: 12px 16px; display: flex; flex-direction: column; gap: 10px; text-align: left; }
+  .sl label { font-size: 14px; color: var(--muted); }
+  .sl b { color: var(--text); }
+  .sl input { width: 100%; accent-color: var(--accent); }
+  .sl small { color: var(--muted); font-size: 12px; }
+
+  /* palette arancione: testo bianco con un filo di ombra sui pulsanti */
+  :root { --on: #ffffff; }
+  .big, .disc::after, .seg button.on, .legend .on, .legend .on b { color: var(--on) !important; text-shadow: 0 1px 2px #0005; }
+</style>
+</head>
+<body>
+<h1>Prova effetti audio</h1>
+<p>Pagina di prova per le categorie del Bingo. Tocca "Nuova canzone" (ne pesca una a caso dai tuoi mazzi), poi prova gli effetti.</p>
+<button class="big" id="newBtn">🎲 Nuova canzone</button>
+<div id="status">&nbsp;</div>
+<div class="grid">
+  <button class="fx" data-fx="effetto" style="grid-column: span 2">🎲 Effetto a caso<small>come nella categoria del Bingo: uno degli effetti qui sotto</small></button>
+  <button class="fx" data-fx="normale">▶ Normale<small>dall'inizio</small></button>
+  <button class="fx" data-fx="caso">🎯 Punto a caso<small>pescata a caso</small></button>
+  <button class="fx" data-fx="intro">⏱ Solo intro<small>5 secondi</small></button>
+  <button class="fx" data-fx="acqua">🌊 Sott'acqua<small>ovattata</small></button>
+  <button class="fx" data-fx="lenta">🐢 Rallentata<small>al 50%, grave</small></button>
+  <button class="fx" data-fx="veloce">🐿 Accelerata<small>al 190%, Chipmunk</small></button>
+  <button class="fx" data-fx="radio">📻 Radiolina<small>gracchiante e distorta</small></button>
+  <button class="fx" data-fx="contrario">⏪ Al contrario<small>tutti i 30 secondi all'indietro</small></button>
+  <button class="fx" data-fx="rutto">🤢 Ruttata<small>vocione gracchiante</small></button>
+  <button class="fx" data-fx="strumentale" style="grid-column: span 2">🎸 Solo musica<small>senza voce (trucco karaoke: su alcune canzoni resta un'eco)</small></button>
+  <button class="fx" data-fx="singhiozzo" style="grid-column: span 2">😮‍💨 Singhiozzo<small>a tratti, con buchi: regola le barre qui sotto</small></button>
+</div>
+<div class="sl">
+  <label>Pezzetti udibili: <b id="onVal"></b><input type="range" id="onRange" min="0.2" max="3" step="0.1" value="1"></label>
+  <label>Buchi di silenzio: <b id="offVal"></b><input type="range" id="offRange" min="0.2" max="3" step="0.1" value="0.8"></label>
+  <small>Ogni pezzetto e ogni buco cambia a caso tra metà e una volta e mezza il valore scelto.</small>
+</div>
+<button class="ghost" id="stopBtn">■ Stop</button>
+<button class="ghost" id="solBtn">Mostra soluzione</button>
+<div id="sol" class="hidden"></div>
+<p><a href="./" style="color:var(--muted)">← torna a Hit Parade</a></p>
+
+<script src="mazzi.js"></script>
+<script>
+const $ = id => document.getElementById(id);
+const ids = Object.keys(window.MAZZI || {}).filter(k => MAZZI[k].d);
+let ctx = null, buffer = null, reversed = null, src = null, current = null, stopTimer = null;
+
+function jsonp(url) {
+  return new Promise((resolve, reject) => {
+    const cb = 'cb' + Math.random().toString(36).slice(2), s = document.createElement('script');
+    const t = setTimeout(() => { done(); reject(new Error('timeout')); }, 10000);
+    function done() { clearTimeout(t); delete window[cb]; s.remove(); }
+    window[cb] = d => { done(); resolve(d); };
+    s.onerror = () => { done(); reject(new Error('rete')); };
+    s.src = url + (url.includes('?') ? '&' : '?') + 'output=jsonp&callback=' + cb;
+    document.head.appendChild(s);
+  });
+}
+
+// L'anteprima viene scaricata e decodificata una volta: poi tutti gli effetti lavorano sullo stesso audio
+async function newSong() {
+  stop();
+  if (!ctx) ctx = new (window.AudioContext || window.webkitAudioContext)();
+  await ctx.resume();
+  $('sol').classList.add('hidden'); buffer = reversed = null;
+  $('status').textContent = 'Carico…';
+  try {
+    current = MAZZI[ids[Math.floor(Math.random() * ids.length)]];
+    const tr = await jsonp('https://api.deezer.com/track/' + current.d);
+    const data = await fetch(tr.preview).then(r => r.arrayBuffer());
+    buffer = await new Promise((ok, ko) => ctx.decodeAudioData(data, ok, ko));
+    $('status').textContent = 'Pronta: scegli un effetto';
+  } catch (e) {
+    $('status').textContent = 'Non riesco a caricarla, riprova (' + e.message + ')';
+  }
+}
+
+function reverseBuffer(b) {
+  const r = ctx.createBuffer(b.numberOfChannels, b.length, b.sampleRate);
+  for (let c = 0; c < b.numberOfChannels; c++) {
+    const from = b.getChannelData(c), to = r.getChannelData(c);
+    for (let i = 0, n = from.length; i < n; i++) to[i] = from[n - 1 - i];
+  }
+  return r;
+}
+
+function stop() {
+  clearTimeout(stopTimer);
+  if (src) { try { src.stop(); } catch (e) {} src = null; }
+  document.querySelectorAll('.fx').forEach(b => b.classList.remove('on'));
+}
+
+const EFFETTI = ['acqua', 'lenta', 'veloce', 'radio'];  // la categoria "Effetto" ne sceglie uno a caso
+
+function play(fx) {
+  if (!buffer) { $('status').textContent = 'Prima tocca "Nuova canzone"'; return; }
+  stop();
+  let label = null;
+  if (fx === 'effetto') {
+    label = '🎲 Effetto a caso';
+    fx = EFFETTI[Math.floor(Math.random() * EFFETTI.length)];
+  }
+  ctx.resume();
+  let buf = buffer, offset = 0, dur = buffer.duration, rate = 1, chain = [];
+  const extra = [];  // oscillatori da fermare insieme alla canzone
+  if (fx === 'caso') offset = 3 + Math.random() * (buffer.duration - 13);
+  if (fx === 'intro') dur = 5;
+  if (fx === 'lenta') rate = 0.5;             // senza correzione: meta' velocita', un'ottava piu' grave
+  if (fx === 'veloce') rate = 1.9;            // quasi doppia velocita', molto acuta
+  if (fx === 'acqua') {                        // taglio degli acuti: ovattata ma ancora udibile
+    const f = ctx.createBiquadFilter(); f.type = 'lowpass'; f.frequency.value = 450; f.Q.value = 5;
+    const g = ctx.createGain(); g.gain.value = 1.8;  // il filtro abbassa il volume: lo ricompenso
+    chain.push(f, g);
+  }
+  if (fx === 'radio') {                        // solo una fetta stretta di frequenze, e un po' distorta
+    const hp = ctx.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = 1300; hp.Q.value = 3;
+    const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 2000; lp.Q.value = 3;
+    const ws = ctx.createWaveShaper(), n = 1024, curve = new Float32Array(n);
+    for (let i = 0; i < n; i++) { const x = i * 2 / n - 1; curve[i] = Math.tanh(x * 6); }
+    ws.curve = curve;
+    chain.push(hp, lp, ws);
+  }
+  if (fx === 'rutto') {                        // piu' lenta + "ring modulation" a 45 Hz + distorsione: vocione gracchiante
+    rate = 0.72;
+    const rm = ctx.createGain(); rm.gain.value = 0;
+    const osc = ctx.createOscillator(); osc.frequency.value = 45; osc.connect(rm.gain); osc.start();
+    extra.push(osc);
+    const ws = ctx.createWaveShaper(), n = 1024, curve = new Float32Array(n);
+    for (let i = 0; i < n; i++) { const x = i * 2 / n - 1; curve[i] = Math.tanh(x * 3); }
+    ws.curve = curve;
+    const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 1800;
+    const g = ctx.createGain(); g.gain.value = 1.6;
+    chain.push(rm, ws, lp, g);
+  }
+  if (fx === 'singhiozzo') {                   // a tratti: pezzetti udibili e buchi di silenzio, a caso
+    const g = ctx.createGain(), t0 = ctx.currentTime;
+    g.gain.setValueAtTime(0, t0);
+    // lunghezze scelte con le barre: ogni pezzetto e ogni buco varia a caso tra meta' e una volta e mezza
+    const onAvg = +$('onRange').value, offAvg = +$('offRange').value;
+    for (let t = t0; t < t0 + dur; ) {
+      const on = onAvg * (0.5 + Math.random()), off = offAvg * (0.5 + Math.random());
+      g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(1, t + 0.015);
+      g.gain.setValueAtTime(1, t + on); g.gain.linearRampToValueAtTime(0, t + on + 0.015);
+      t += on + off;
+    }
+    chain.push(g);
+  }
+  if (fx === 'contrario') {                    // tutta l'anteprima, suonata al contrario
+    if (!reversed) reversed = reverseBuffer(buffer);
+    buf = reversed;
+  }
+  src = ctx.createBufferSource(); src.buffer = buf; src.playbackRate.value = rate;
+  if (fx === 'strumentale') {
+    // trucco del karaoke: sinistro meno destro cancella quello che sta al centro (di solito la voce)...
+    const split = ctx.createChannelSplitter(2), inv = ctx.createGain(), mix = ctx.createGain();
+    inv.gain.value = -1; mix.gain.value = 1.4;
+    src.connect(split);
+    split.connect(mix, 0);
+    split.connect(inv, 1); inv.connect(mix);
+    const hp = ctx.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = 120;
+    mix.connect(hp); hp.connect(ctx.destination);
+    // ...ma cancella anche il basso, che sta al centro: lo rimetto prendendo solo le note piu' basse
+    const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 120; lp.Q.value = 0.7;
+    src.connect(lp); lp.connect(ctx.destination);
+    if (buf.numberOfChannels < 2) $('status').textContent = 'Questa anteprima è mono: il trucco non funziona';
+  } else {
+    let node = src;
+    for (const n of chain) { node.connect(n); node = n; }
+    node.connect(ctx.destination);
+  }
+  src.start(0, offset, dur);
+  const name = document.querySelector(`.fx[data-fx="${fx}"]`).firstChild.textContent.trim();
+  document.querySelector(label ? '.fx[data-fx="effetto"]' : `.fx[data-fx="${fx}"]`).classList.add('on');
+  $('status').textContent = '♪ ' + (label ? label + ' (era: ' + name + ')' : name);
+  src.onended = () => {
+    extra.forEach(o => { try { o.stop(); } catch (e) {} });
+    document.querySelectorAll('.fx').forEach(b => b.classList.remove('on'));
+  };
+}
+
+function showSliders() {
+  $('onVal').textContent = (+$('onRange').value).toFixed(1).replace('.', ',') + ' s';
+  $('offVal').textContent = (+$('offRange').value).toFixed(1).replace('.', ',') + ' s';
+}
+$('onRange').oninput = $('offRange').oninput = showSliders;
+showSliders();
+$('newBtn').onclick = newSong;
+$('stopBtn').onclick = stop;
+document.querySelectorAll('.fx').forEach(b => b.onclick = () => play(b.dataset.fx));
+$('solBtn').onclick = () => {
+  if (!current) return;
+  $('sol').innerHTML = `<b style="font-size:28px;color:var(--accent)">${current.y || ''}</b><br><b>${current.t}</b><br><span style="color:var(--muted)">${current.a}</span>`;
+  $('sol').classList.remove('hidden');
+};
+</script>
+</body>
+</html>
