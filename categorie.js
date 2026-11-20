@@ -11,5 +11,5 @@ window.HP_CATS = [
   { id: 'combo', lv: 3, nome: 'La Combo', regola: 'Scrivete artista E titolo: valgono solo tutti e due.', audio: 'normale' },
   { id: 'piu1', lv: 4, nome: '±1 anno', regola: 'Scrivete l\'anno: vale anche quello prima o dopo.', audio: 'normale' },
   { id: 'asta', lv: 4, nome: 'Asta al ribasso', regola: 'Scrivete un intervallo di anni: vince il più stretto che contiene l\'anno giusto.', audio: 'normale' },
-  { id: 'vicino', lv: 5, nome: 'Il più vicino', regola: 'Scrivete l\'anno esatto: segna solo chi si avvicina di più. Anno esatto = FURTO!', audio: 'normale' },
+  { id: 'vicino', lv: 5, nome: 'Il più vicino', regola: 'Scrivete l\'anno esatto: segna solo chi si avvicina di più. Se i più vicini sono a pari distanza, nessuno segna. Anno esatto = FURTO (vale sempre, anche in due)!', audio: 'normale' },
 ];
